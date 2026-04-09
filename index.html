@@ -1,0 +1,128 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>MedDireto</title>
+    
+    <!-- PWA Primary Tags -->
+    <meta name="theme-color" content="#0067d6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="MedDireto">
+    <link rel="apple-touch-icon" href="https://meddireto.com/logo.png">
+    <link rel="manifest" href="./manifest.json">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'brand-gray': '#878d98',
+              'premium-teal': { 
+                DEFAULT: '#0067d6', 
+                '50': '#eff6ff',
+                '100': '#dbeafe',
+                '200': '#bfdbfe',
+                '300': '#93c5fd',
+                '400': '#60a5fa',
+                '500': '#0067d6',
+                '600': '#0055b3',
+                '700': '#00448f',
+                '800': '#00336b',
+                '900': '#002247',
+              },
+              'slate': { 
+                '50': '#F9FAFB', 
+                '100': '#F3F4F6',
+                '200': '#E5E7EB',
+                '300': '#D1D5DB',
+                '400': '#9CA3AF',
+                '500': '#6B7280',
+                '600': '#4B5563',
+                '700': '#374151',
+                '800': '#1F2937', 
+                '900': '#111827',
+                '950': '#020617',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              print: ['Roboto', 'sans-serif'],
+            },
+            boxShadow: {
+              'subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+              'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@6.28.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.81.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-100 dark:bg-slate-950">
+    
+    <!-- iOS PWA Install Banner -->
+    <div id="ios-install-banner" class="hidden sticky top-0 z-[100] w-full bg-premium-teal text-white p-4 shadow-xl border-b border-white/10 animate-fade-in">
+        <div class="container mx-auto flex items-start gap-3">
+            <div class="bg-white p-2 rounded-xl shrink-0">
+                <img src="https://meddireto.com/logo.png" alt="MedDireto" class="w-10 h-10 object-contain" />
+            </div>
+            <div class="flex-1">
+                <p class="font-bold text-sm leading-tight mb-1">Use como Aplicativo</p>
+                <p class="text-xs opacity-90 leading-snug">Clique no ícone de <strong>Compartilhar</strong> (quadrado com seta <svg xmlns="http://www.w3.org/2000/svg" class="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6a3 3 0 100 2.684m0-2.684l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>) e selecione <strong>"Adicionar à Tela de Início"</strong>.</p>
+            </div>
+            <button onclick="document.getElementById('ios-install-banner').remove()" class="p-1 opacity-60 hover:opacity-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="root"></div>
+
+    <script type="module">
+      // 1. Service Worker Registration (Network Only)
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('SW registered'))
+            .catch(err => console.log('SW error', err));
+        });
+      }
+
+      // 2. iOS Detection Script
+      const isIos = () => {
+        const userAgent = window.navigator.userAgent.toLowerCase();
+        return /iphone|ipad|ipod/.test(userAgent);
+      }
+      
+      const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+
+      if (isIos() && !isInStandaloneMode()) {
+        const banner = document.getElementById('ios-install-banner');
+        if (banner) banner.classList.remove('hidden');
+      }
+    </script>
+    <script type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
