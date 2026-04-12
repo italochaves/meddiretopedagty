@@ -26,7 +26,17 @@ import CetoacidosePage from './components/CetoacidosePage';
 import ConvulsaoPage from './components/ConvulsaoPage';
 import DrogasVasoativasPage from './components/DrogasVasoativasPage';
 import PediatriaPage from './components/PediatriaPage';
+import PacientesPorta from './components/PacientesPorta';
+import DocumentosMedicos from './components/DocumentosMedicos';
+import AtestadoMedico from './components/AtestadoMedico';
+import DeclaracaoComparecimento from './components/DeclaracaoComparecimento';
+import EncaminhamentoMedico from './components/EncaminhamentoMedico';
+import RelatorioMedico from './components/RelatorioMedico';
+import SolicitacaoExames from './components/SolicitacaoExames';
 import MeuCadastroPage from './components/MeuCadastroPage';
+import TutorialPage from './components/TutorialPage';
+import FavoritosPage from './components/FavoritosPage';
+import PrescricaoLivre from './components/PrescricaoLivre';
 import UnderConstruction from './components/UnderConstruction';
 import ProtectedRoute from './components/ProtectedRoute';
 import Header from './components/Header';
@@ -84,6 +94,7 @@ const AppContent: React.FC = () => {
                     if (initialSession && mounted.current) {
                         setSession(initialSession);
                         fetchProfile(initialSession.user.id, mounted);
+                        refreshLetterhead();
                     }
                     initialSessionFound = true; // Mesmo que null, o Supabase respondeu
                 } else {
@@ -99,6 +110,7 @@ const AppContent: React.FC = () => {
                     localStorage.clear();
                     setSession(null);
                     setProfile(null);
+                    refreshLetterhead();
                     setLoading(false);
                     return;
                 }
@@ -107,6 +119,7 @@ const AppContent: React.FC = () => {
                     setSession(currentSession);
                     if (currentSession.user.id !== session?.user.id || !profile) {
                          fetchProfile(currentSession.user.id, mounted);
+                         refreshLetterhead();
                     }
                 }
                 setLoading(false);
@@ -164,6 +177,7 @@ const AppContent: React.FC = () => {
                         <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="/" element={!session ? <Navigate to="/login" /> : <Navigate to="/dashboard" />} />
                         <Route path="/dashboard" element={<ProtectedRoute session={session}><Dashboard /></ProtectedRoute>} />
+                        <Route path="/porta" element={<ProtectedRoute session={session}><PacientesPorta /></ProtectedRoute>} />
                         <Route path="/hospitalar" element={<ProtectedRoute session={session}><HospitalarPage /></ProtectedRoute>} />
                         <Route path="/emergencia" element={<ProtectedRoute session={session}><EmergenciaPage /></ProtectedRoute>} />
                         <Route path="/emergencia/intubacao" element={<ProtectedRoute session={session}><IntubacaoPage /></ProtectedRoute>} />
@@ -175,9 +189,18 @@ const AppContent: React.FC = () => {
                         <Route path="/emergencia/cetoacidose" element={<ProtectedRoute session={session}><CetoacidosePage /></ProtectedRoute>} />
                         <Route path="/emergencia/convulsao" element={<ProtectedRoute session={session}><ConvulsaoPage /></ProtectedRoute>} />
                         <Route path="/emergencia/drogas-vasoativas" element={<ProtectedRoute session={session}><DrogasVasoativasPage /></ProtectedRoute>} />
+                        <Route path="/prescricao-livre" element={<ProtectedRoute session={session}><PrescricaoLivre /></ProtectedRoute>} />
                         <Route path="/pediatria" element={<ProtectedRoute session={session}><PediatriaPage /></ProtectedRoute>} />
+                        <Route path="/documentos" element={<ProtectedRoute session={session}><DocumentosMedicos /></ProtectedRoute>} />
+                        <Route path="/documentos/atestado" element={<ProtectedRoute session={session}><AtestadoMedico /></ProtectedRoute>} />
+                        <Route path="/documentos/comparecimento" element={<ProtectedRoute session={session}><DeclaracaoComparecimento /></ProtectedRoute>} />
+                        <Route path="/documentos/encaminhamento" element={<ProtectedRoute session={session}><EncaminhamentoMedico /></ProtectedRoute>} />
+                        <Route path="/documentos/relatorio" element={<ProtectedRoute session={session}><RelatorioMedico /></ProtectedRoute>} />
+                        <Route path="/documentos/exames" element={<ProtectedRoute session={session}><SolicitacaoExames /></ProtectedRoute>} />
                         <Route path="/calculadoras" element={<ProtectedRoute session={session}><Calculadoras /></ProtectedRoute>} />
                         <Route path="/minhas-receitas" element={<ProtectedRoute session={session}><MinhasReceitas /></ProtectedRoute>} />
+                        <Route path="/favoritos" element={<ProtectedRoute session={session}><FavoritosPage /></ProtectedRoute>} />
+                        <Route path="/tutorial" element={<ProtectedRoute session={session}><TutorialPage /></ProtectedRoute>} />
                         <Route path="/meu-cadastro" element={<ProtectedRoute session={session}><MeuCadastroPage /></ProtectedRoute>} />
                         <Route path="/categoria/:id" element={<ProtectedRoute session={session}><CategoryPage /></ProtectedRoute>} />
                         <Route path="/prescricao/:id" element={<ProtectedRoute session={session}><PrescriptionPage /></ProtectedRoute>} />

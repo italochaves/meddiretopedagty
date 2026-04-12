@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase';
@@ -19,7 +18,6 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
     // Greeting State
     const [greeting, setGreeting] = useState('');
 
-    // Fetch user metadata for personalized greeting
     useEffect(() => {
         const fetchUserMetadata = async () => {
             const { data: { user } } = await supabase.auth.getUser();
@@ -28,22 +26,19 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
                 const meta = user.user_metadata;
                 const fullName = meta.full_name || meta.nome || '';
                 
-                // Divide o nome por espaços e pega os dois primeiros
                 const nameParts = fullName.trim().split(/\s+/);
                 
                 if (nameParts.length > 0) {
-                    // Pega o primeiro e o segundo nome (se existir)
                     const displayName = nameParts.slice(0, 2).join(' ');
                     setGreeting(displayName);
                 } else {
-                    setGreeting('Usuário');
+                    setGreeting('Dr(a)');
                 }
             }
         };
 
         fetchUserMetadata();
 
-        // Listen for Auth changes to update greeting immediately
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
             if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
                 fetchUserMetadata();
@@ -60,16 +55,10 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
         setIsLoggingOut(true);
 
         try {
-            // We await the signOut process
             const { error } = await supabase.auth.signOut();
             if (error) throw error;
-            
-            // NOTE: We do NOT manually navigate('/login') here.
-            // We rely on App.tsx -> onAuthStateChange -> setSession(null) -> ProtectedRoute -> Redirect to Login.
-            
         } catch (error) {
             console.error("Logout failed:", error);
-            // Fallback strategy: Force clear and hard reload if standard logout fails
             localStorage.clear();
             window.location.href = '/'; 
         } finally {
@@ -77,10 +66,11 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
         }
     };
 
+    // New "The Clinical Atelier" styling pattern for links
     const isActive = (path: string) => 
         location.pathname === path 
-            ? 'text-premium-teal font-semibold bg-premium-teal/5 rounded-lg text-center leading-tight' 
-            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg text-center leading-tight';
+            ? 'text-slate-900 dark:text-white font-bold bg-slate-100 dark:bg-slate-800 rounded-xl transition-all' 
+            : 'text-slate-500 font-semibold hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-all';
 
     const closeSidebar = () => setIsSidebarOpen(false);
 
@@ -88,21 +78,21 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
         `block px-4 py-3 text-base font-medium transition-colors ${
             location.pathname === path
             ? 'text-premium-teal bg-premium-teal/10 border-r-4 border-premium-teal'
-            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
         }`;
 
     return (
         <>
-            <header className="sticky top-0 z-40 w-full bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 shadow-sm print:hidden transition-colors duration-200">
-                <div className="container px-4 mx-auto sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
+            <header className="sticky top-0 z-40 w-full bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800 shadow-sm print:hidden transition-colors duration-200">
+                <div className="container px-4 mx-auto sm:px-6 lg:px-8 max-w-[1400px]">
+                    <div className="flex items-center justify-between h-[72px]">
                         
                         {/* Left Side: Hamburger & Logo */}
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
                             {/* Mobile Hamburger Button */}
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
-                                className="p-2 -ml-2 text-slate-500 rounded-md md:hidden hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-premium-teal"
+                                className="p-2 -ml-2 text-slate-500 rounded-md xl:hidden hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none"
                                 aria-label="Abrir menu"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -110,59 +100,67 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
                                 </svg>
                             </button>
 
-                            {/* --- LOGO NOVO (DESKTOP E HEADER PRINCIPAL) --- */}
-                            <Link to="/dashboard" className="flex items-center gap-3 hover:opacity-90 transition-opacity group">
-                                <img 
-                                    src="/logo.png" 
-                                    alt="MedDireto Logo" 
-                                    className="h-10 w-auto" 
-                                />
-                                <span className="text-xl font-extrabold tracking-tight text-brand-gray dark:text-white relative top-[1px]">
+                            {/* LOGO (Clean & Professional) */}
+                            <Link to="/dashboard" className="flex items-center gap-3 hover:opacity-90 transition-opacity group mr-4 xl:mr-8">
+                                <span className="text-[22px] font-extrabold tracking-tight text-slate-900 dark:text-white">
                                     MedDireto
                                 </span>
                             </Link>
                             
                             {/* Desktop Navigation */}
-                            <nav className="hidden md:flex items-center space-x-2 text-sm font-medium ml-6">
-                                <Link to="/dashboard" className={`px-3 py-2 ${isActive('/dashboard')}`}>Prescrições</Link>
-                                <Link to="/minhas-receitas" className={`px-3 py-2 ${isActive('/minhas-receitas')}`}>Minhas Receitas</Link>
-                                <Link to="/calculadoras" className={`px-3 py-2 ${isActive('/calculadoras')}`}>Calculadoras</Link>
-                                <Link to="/settings" className={`px-3 py-2 ${isActive('/settings')}`}>Configurações</Link>
-                                <Link to="/meu-cadastro" className={`px-3 py-2 ${isActive('/meu-cadastro')}`}>Meu Cadastro</Link>
+                            <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2 text-[15px]">
+                                <Link to="/dashboard" className={`px-3 xl:px-4 py-2 ${isActive('/dashboard')}`}>Início</Link>
+                                <Link to="/minhas-receitas" className={`px-3 xl:px-4 py-2 ${isActive('/minhas-receitas')}`}>Minhas Receitas</Link>
+                                <Link to="/calculadoras" className={`px-3 xl:px-4 py-2 ${isActive('/calculadoras')}`}>Calculadoras</Link>
+                                <Link to="/settings" className={`px-3 xl:px-4 py-2 ${isActive('/settings')}`}>Configurações de Impressão</Link>
                             </nav>
                         </div>
 
                         {/* Right Side Actions */}
-                        <div className="flex items-center gap-4 sm:gap-6">
+                        <div className="flex items-center gap-4">
                             
+                            {/* Desktop Secondary Links */}
+                            <div className="hidden lg:flex items-center mr-2 xl:mr-4 border-r border-slate-200 dark:border-slate-700 pr-4 xl:pr-6">
+                                <Link to="/meu-cadastro" className="text-[14px] text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium px-2 xl:px-3">Meu Perfil</Link>
+                                <Link to="/tutorial" className="text-[14px] text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium px-2 xl:px-3">Suporte</Link>
+                            </div>
+
                             {/* Theme Toggle Button */}
                             <button 
                                 onClick={toggleTheme} 
-                                className="p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 rounded-full transition-colors"
-                                aria-label="Alternar tema"
+                                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors"
                             >
                                 {isDarkMode ? (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-[22px] h-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
                                 ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-[22px] h-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                                     </svg>
                                 )}
                             </button>
 
-                            <div className="flex items-center gap-4 text-sm font-medium">
-                                <span className="text-slate-600 dark:text-slate-300 hidden sm:block text-center leading-tight">
-                                    {greeting}
-                                </span>
-                                <button
-                                    onClick={handleLogout}
-                                    disabled={isLoggingOut}
-                                    className="text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-colors disabled:opacity-50"
-                                >
-                                    {isLoggingOut ? 'Saindo...' : 'Sair'}
-                                </button>
+                            {/* User Avatar & Logout */}
+                            <div className="flex items-center gap-3 ml-2">
+                                <div className="hidden sm:flex flex-col items-end">
+                                    <span className="text-[14px] font-bold text-slate-800 dark:text-slate-200 leading-tight">
+                                        {greeting}
+                                    </span>
+                                    <button
+                                        onClick={handleLogout}
+                                        disabled={isLoggingOut}
+                                        className="text-[12px] font-medium text-slate-400 hover:text-red-500 transition-colors"
+                                    >
+                                        {isLoggingOut ? 'Saindo...' : 'Sair da Conta'}
+                                    </button>
+                                </div>
+                                <div className="w-[38px] h-[38px] rounded-full bg-slate-900 dark:bg-slate-700 flex items-center justify-center text-white font-bold text-sm shadow-sm overflow-hidden border-2 border-white dark:border-slate-800">
+                                    {profile?.nome 
+                                        ? profile.nome.trim().charAt(0).toUpperCase() 
+                                        : (greeting && greeting !== 'Dr(a)' ? greeting.trim().charAt(0).toUpperCase() : 'U')
+                                    }
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -172,47 +170,41 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div 
-                    className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm md:hidden"
+                    className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm xl:hidden"
                     onClick={closeSidebar}
                 ></div>
             )}
 
             {/* Mobile Sidebar Panel */}
             <div 
-                className={`fixed top-0 left-0 z-50 h-full w-64 bg-white dark:bg-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed top-0 left-0 z-50 h-full w-[280px] bg-white dark:bg-slate-900 shadow-2xl transform transition-transform duration-300 ease-out xl:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 <div className="flex flex-col h-full">
                     {/* Sidebar Header */}
-                    <div className="flex items-center justify-between px-4 h-16 border-b border-slate-100 dark:border-slate-700">
-                        {/* --- LOGO NOVO (SIDEBAR MOBILE) --- */}
+                    <div className="flex items-center justify-between px-6 h-[72px] border-b border-slate-100 dark:border-slate-800">
                         <Link to="/dashboard" onClick={closeSidebar} className="flex items-center gap-3">
-                            <img 
-                                src="/logo.png" 
-                                alt="MedDireto Logo" 
-                                className="h-8 w-auto" 
-                            />
-                            <span className="text-xl font-extrabold tracking-tight text-brand-gray dark:text-white">
+                            <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                                 MedDireto
                             </span>
                         </Link>
                         
                         <button 
                             onClick={closeSidebar}
-                            className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full"
+                            className="p-2 -mr-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
 
                     {/* Sidebar Links */}
-                    <nav className="flex-1 py-4 overflow-y-auto">
-                        <div className="px-4 mb-2">
-                             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Menu</p>
+                    <nav className="flex-1 py-6 overflow-y-auto">
+                        <div className="px-6 mb-3">
+                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Plataforma Clínica</p>
                         </div>
                         <Link to="/dashboard" onClick={closeSidebar} className={mobileLinkClass('/dashboard')}>
-                            Prescrições
+                            Início
                         </Link>
                         <Link to="/minhas-receitas" onClick={closeSidebar} className={mobileLinkClass('/minhas-receitas')}>
                             Minhas Receitas
@@ -221,34 +213,47 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
                             Calculadoras
                         </Link>
                         <Link to="/settings" onClick={closeSidebar} className={mobileLinkClass('/settings')}>
-                            Configurações
+                            Configurações de Impressão
                         </Link>
+                        
+                        <div className="px-6 mt-8 mb-3">
+                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Conta</p>
+                        </div>
                         <Link to="/meu-cadastro" onClick={closeSidebar} className={mobileLinkClass('/meu-cadastro')}>
-                            Meu Cadastro
+                            Meu Perfil
+                        </Link>
+                        <Link to="/tutorial" onClick={closeSidebar} className={mobileLinkClass('/tutorial')}>
+                            Suporte
                         </Link>
                     </nav>
 
                     {/* Sidebar Footer (User Info) */}
-                    <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-full bg-premium-teal/20 flex items-center justify-center text-premium-teal font-bold">
-                                {profile?.nome ? profile.nome.charAt(0).toUpperCase() : 'U'}
+                    <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-slate-900 dark:bg-slate-700 flex items-center justify-center text-white font-bold">
+                                {profile?.nome 
+                                    ? profile.nome.trim().charAt(0).toUpperCase() 
+                                    : (greeting && greeting !== 'Dr(a)' ? greeting.trim().charAt(0).toUpperCase() : 'U')
+                                }
                             </div>
                             <div>
-                                <p className="text-sm font-bold text-slate-800 dark:text-white">
-                                    {profile?.nome ? profile.nome.split(' ')[0] : 'Usuário'}
+                                <p className="text-[14px] font-bold text-slate-800 dark:text-white leading-tight">
+                                    {profile?.nome 
+                                        ? profile.nome.split(' ')[0] 
+                                        : (greeting && greeting !== 'Dr(a)' ? greeting.split(' ')[0] : 'Doutor(a)')
+                                    }
                                 </p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    {profile?.profissao || 'Profissional'}
+                                <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+                                    {profile?.profissao || 'Acesso Premium'}
                                 </p>
                             </div>
                         </div>
                         <button
                             onClick={() => { closeSidebar(); handleLogout(); }}
                             disabled={isLoggingOut}
-                            className="w-full py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 dark:border-red-900/30 transition-colors disabled:opacity-50"
+                            className="w-full py-2.5 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 rounded-xl transition-colors disabled:opacity-50"
                         >
-                            {isLoggingOut ? 'Saindo...' : 'Sair'}
+                            {isLoggingOut ? 'Desconectando...' : 'Fazer Logout'}
                         </button>
                     </div>
                 </div>

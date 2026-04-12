@@ -407,26 +407,34 @@ const Settings: React.FC<SettingsProps> = ({ profile }) => {
                 />
             )}
 
-            <h1 className="mb-8 text-3xl font-bold text-slate-800">Meus Receituários</h1>
+            <h1 className="mb-8 text-3xl font-bold text-slate-800">Meus Receituários (Fundo)</h1>
 
             <div className="grid gap-8 lg:grid-cols-3">
                 {/* Upload Section */}
                 <div className="lg:col-span-1">
                     <div className="p-6 bg-white rounded-2xl shadow-subtle">
-                        <h2 className="mb-4 text-lg font-semibold text-slate-800">Adicionar Novo</h2>
-                        <p className="mb-4 text-sm text-slate-600">
-                            Envie uma imagem (JPG/PNG). O recorte será fixo no formato <strong>A4 Vertical</strong>.
-                            <br /><strong>Limite: {letterheads.length}/3</strong>
+                        <h2 className="mb-1 text-lg font-semibold text-slate-800">Adicionar novo receituário</h2>
+                        <p className="mb-4 text-sm text-slate-500">
+                            Envie a imagem do seu papel timbrado para usar como fundo nas impressões.
                         </p>
-                        
+
+                        <ul className="mb-4 space-y-1 text-xs text-slate-500">
+                            <li className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-teal-500 inline-block flex-shrink-0"></span>Formatos aceitos: JPG ou PNG</li>
+                            <li className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-teal-500 inline-block flex-shrink-0"></span>Posição da folha: vertical (A4)</li>
+                            <li className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-teal-500 inline-block flex-shrink-0"></span>Dica: use imagem reta, nítida e sem sombras</li>
+                        </ul>
+
                         <label className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${letterheads.length >= 3 ? 'bg-slate-100 border-slate-300 cursor-not-allowed' : 'border-premium-teal-300 bg-premium-teal-50 hover:bg-premium-teal-100'}`}>
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                 <svg className="w-8 h-8 mb-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                                <p className="text-xs text-slate-500">
-                                    {letterheads.length >= 3 ? 'Limite atingido' : 'Clique para selecionar'}
+                                <p className="text-sm font-semibold text-slate-600">
+                                    {letterheads.length >= 3 ? 'Limite de 3 receituários atingido' : 'Clique para enviar a imagem do receituário'}
                                 </p>
+                                {letterheads.length < 3 && (
+                                    <p className="text-xs text-slate-400 mt-0.5">JPG ou PNG &bull; Folha vertical</p>
+                                )}
                             </div>
                             <input 
                                 type="file" 
@@ -436,6 +444,12 @@ const Settings: React.FC<SettingsProps> = ({ profile }) => {
                                 disabled={uploading || letterheads.length >= 3} 
                             />
                         </label>
+
+                        <p className="mt-3 text-xs text-slate-400 leading-relaxed">
+                            Depois de enviar, clique em <strong className="text-slate-600">"Ajustar"</strong> para alinhar o texto da prescrição corretamente no papel.
+                        </p>
+
+                        <p className="mt-2 text-xs text-slate-400">Limite: {letterheads.length}/3 receituários</p>
                         {uploading && <p className="mt-2 text-xs font-bold text-center text-blue-600 animate-pulse">Processando e enviando...</p>}
                         {message && <p className={`mt-2 text-xs text-center ${message.startsWith('Falha') ? 'text-red-600' : 'text-slate-600'}`}>{message}</p>}
                     </div>
@@ -449,8 +463,9 @@ const Settings: React.FC<SettingsProps> = ({ profile }) => {
                                 <div className="aspect-[210/297] bg-slate-100 relative group">
                                     <img src={lh.image_url} alt="Receituário" className="object-contain w-full h-full" />
                                     {lh.active && (
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <span className="px-3 py-1 text-xs font-bold text-white bg-premium-teal shadow-lg rounded-full">ATIVO</span>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-1">
+                                            <span className="px-3 py-1 text-xs font-bold text-white bg-premium-teal shadow-lg rounded-full">Ativo</span>
+                                            <span className="text-[10px] font-medium text-white bg-slate-800/60 px-2 py-0.5 rounded-full">Em uso nas impressões</span>
                                         </div>
                                     )}
                                 </div>
@@ -467,7 +482,7 @@ const Settings: React.FC<SettingsProps> = ({ profile }) => {
                                                 Usar este
                                             </button>
                                         ) : (
-                                            <span className="text-xs text-slate-400 italic">Selecionado</span>
+                                            <span className="text-xs text-slate-400 italic">Em uso</span>
                                         )}
                                         
                                         <div className="flex gap-2">
@@ -489,8 +504,9 @@ const Settings: React.FC<SettingsProps> = ({ profile }) => {
                             </div>
                         ))}
                         {letterheads.length === 0 && (
-                            <div className="flex items-center justify-center h-48 text-sm text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                                Nenhum receituário configurado.
+                            <div className="flex flex-col items-center justify-center h-48 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300 px-6">
+                                <p className="text-sm font-semibold text-slate-500 mb-1">Nenhum receituário cadastrado ainda</p>
+                                <p className="text-xs text-slate-400">Envie a imagem do seu papel timbrado ao lado para começar.</p>
                             </div>
                         )}
                     </div>
@@ -588,18 +604,30 @@ const Settings: React.FC<SettingsProps> = ({ profile }) => {
                         {/* 2. Controls Area (Bottom 40% Mobile / Right Side Desktop) */}
                         <div className="h-[40%] md:h-full w-full md:w-80 bg-white p-6 flex flex-col z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] md:shadow-none relative">
                             <div className="mb-4">
-                                <h3 className="text-lg md:text-xl font-bold text-slate-800">Ajustar Layout</h3>
-                                <p className="text-xs text-slate-500 hidden md:block">
-                                    Ajuste as margens para alinhar com seu papel pré-impresso.
+                                <h3 className="text-lg md:text-xl font-bold text-slate-800">Ajustar posição do texto</h3>
+                                <p className="text-xs text-slate-500 hidden md:block mt-0.5">
+                                    Ajuste para que o texto da prescrição fique bem alinhado no seu receituário.
                                 </p>
                             </div>
+
+                            {/* Como ajustar — guia rápido */}
+                            <div className="hidden md:block mb-5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">Como ajustar</p>
+                                <ol className="space-y-1 text-[11px] text-slate-500 list-none">
+                                    <li className="flex gap-1.5"><span className="font-bold text-teal-600 flex-shrink-0">1.</span>Veja se o texto começa abaixo do cabeçalho do papel</li>
+                                    <li className="flex gap-1.5"><span className="font-bold text-teal-600 flex-shrink-0">2.</span>Ajuste o espaço para o conteúdo caber na área em branco</li>
+                                    <li className="flex gap-1.5"><span className="font-bold text-teal-600 flex-shrink-0">3.</span>Evite que o texto encoste na assinatura ou rodapé</li>
+                                    <li className="flex gap-1.5"><span className="font-bold text-teal-600 flex-shrink-0">4.</span>Quando estiver alinhado, clique em "Salvar Ajustes"</li>
+                                </ol>
+                            </div>
                             
-                            <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="space-y-5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                                 <div>
-                                    <label className="flex justify-between text-xs md:text-sm font-bold text-slate-700 mb-2">
-                                        <span>Margem Superior (px)</span>
-                                        <span className="text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded">{adjustmentData.margin_top_px}</span>
+                                    <label className="flex justify-between text-xs md:text-sm font-bold text-slate-700 mb-0.5">
+                                        <span>Posição vertical do texto</span>
+                                        <span className="text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded text-xs">{adjustmentData.margin_top_px}</span>
                                     </label>
+                                    <p className="text-[11px] text-slate-400 mb-2">Move o texto para cima ou para baixo na folha.</p>
                                     <input 
                                         type="range" 
                                         min="50" 
@@ -612,10 +640,11 @@ const Settings: React.FC<SettingsProps> = ({ profile }) => {
                                 </div>
 
                                 <div>
-                                    <label className="flex justify-between text-xs md:text-sm font-bold text-slate-700 mb-2">
-                                        <span>Margem Lateral (px)</span>
-                                        <span className="text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded">{adjustmentData.side_margin_px}</span>
+                                    <label className="flex justify-between text-xs md:text-sm font-bold text-slate-700 mb-0.5">
+                                        <span>Espaço nas laterais</span>
+                                        <span className="text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded text-xs">{adjustmentData.side_margin_px}</span>
                                     </label>
+                                    <p className="text-[11px] text-slate-400 mb-2">Move o texto para mais perto ou mais longe das bordas da folha.</p>
                                     <input 
                                         type="range" 
                                         min="0" 
@@ -628,10 +657,11 @@ const Settings: React.FC<SettingsProps> = ({ profile }) => {
                                 </div>
 
                                 <div>
-                                    <label className="flex justify-between text-xs md:text-sm font-bold text-slate-700 mb-2">
-                                        <span>Altura do Texto (%)</span>
-                                        <span className="text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded">{adjustmentData.text_height_vh}%</span>
+                                    <label className="flex justify-between text-xs md:text-sm font-bold text-slate-700 mb-0.5">
+                                        <span>Tamanho da área de texto</span>
+                                        <span className="text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded text-xs">{adjustmentData.text_height_vh}%</span>
                                     </label>
+                                    <p className="text-[11px] text-slate-400 mb-2">Aumenta ou diminui o espaço disponível para a prescrição na folha.</p>
                                     <input 
                                         type="range" 
                                         min="10" 
@@ -644,10 +674,11 @@ const Settings: React.FC<SettingsProps> = ({ profile }) => {
                                 </div>
 
                                 <div>
-                                    <label className="flex justify-between text-xs md:text-sm font-bold text-slate-700 mb-2">
-                                        <span>Posição Data - Fundo (px)</span>
-                                        <span className="text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded">{adjustmentData.date_offset_bottom_px}</span>
+                                    <label className="flex justify-between text-xs md:text-sm font-bold text-slate-700 mb-0.5">
+                                        <span>Posição da data</span>
+                                        <span className="text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded text-xs">{adjustmentData.date_offset_bottom_px}</span>
                                     </label>
+                                    <p className="text-[11px] text-slate-400 mb-2">Move a data para encaixar no lugar certo na parte de baixo da folha.</p>
                                     <input 
                                         type="range" 
                                         min="10" 
@@ -657,6 +688,17 @@ const Settings: React.FC<SettingsProps> = ({ profile }) => {
                                         onChange={(e) => setAdjustmentData({...adjustmentData, date_offset_bottom_px: Number(e.target.value)})}
                                         className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-premium-teal"
                                     />
+                                </div>
+
+                                {/* Bloco de dicas */}
+                                <div className="hidden md:block p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                                    <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider mb-2">Dicas importantes</p>
+                                    <ul className="space-y-1 text-[11px] text-amber-700/80">
+                                        <li className="flex gap-1.5"><span className="flex-shrink-0">•</span>Use uma imagem bem reta e sem sombras</li>
+                                        <li className="flex gap-1.5"><span className="flex-shrink-0">•</span>O texto deve ficar dentro da área em branco do papel</li>
+                                        <li className="flex gap-1.5"><span className="flex-shrink-0">•</span>Não deixe o conteúdo encostar na assinatura ou rodapé</li>
+                                        <li className="flex gap-1.5"><span className="flex-shrink-0">•</span>Faça um teste de impressão depois de salvar</li>
+                                    </ul>
                                 </div>
                             </div>
 

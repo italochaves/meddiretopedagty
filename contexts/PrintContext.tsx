@@ -3,6 +3,8 @@ import React, { createContext, useState, useContext, ReactNode, useCallback, use
 import { PrintItem, Letterhead } from '../types';
 import { supabase } from '../services/supabase';
 
+export type PrintFormat = 'A4' | 'A5_DUAL';
+
 interface PrintContextType {
     printQueue: PrintItem[];
     patientName: string;
@@ -12,6 +14,8 @@ interface PrintContextType {
     removeFromQueue: (id: string) => void;
     clearQueue: () => void;
     setPatientName: (name: string) => void;
+    printFormat: PrintFormat;
+    setPrintFormat: (format: PrintFormat) => void;
     setIsBackgroundLoaded: (loaded: boolean) => void; // New setter
     refreshLetterhead: () => Promise<void>;
 }
@@ -23,10 +27,15 @@ export const PrintProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const [patientName, setPatientName] = useState('');
     const [activeLetterhead, setActiveLetterhead] = useState<Letterhead | null>(null);
     const [isBackgroundLoaded, setIsBackgroundLoaded] = useState(true); // Default true if no letterhead
+    const [printFormat, setPrintFormat] = useState<PrintFormat>('A4');
 
     const fetchActiveLetterhead = useCallback(async () => {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+        if (!session) {
+            setActiveLetterhead(null);
+            setIsBackgroundLoaded(true);
+            return;
+        }
 
         // Reset loading state when fetching new letterhead
         setIsBackgroundLoaded(false); 
@@ -79,6 +88,8 @@ export const PrintProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             removeFromQueue,
             clearQueue,
             setPatientName,
+            printFormat,
+            setPrintFormat,
             setIsBackgroundLoaded,
             refreshLetterhead: fetchActiveLetterhead
         }}>

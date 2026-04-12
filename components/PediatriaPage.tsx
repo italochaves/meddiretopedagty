@@ -10,12 +10,10 @@ interface RichTextEditorProps {
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialHtml, editorRef }) => {
-    const isInitialized = useRef(false);
-
     useEffect(() => {
-        if (editorRef.current && !isInitialized.current) {
+        if (editorRef.current) {
+            // Because we are reactive, update the HTML whenever initialHtml changes
             editorRef.current.innerHTML = initialHtml;
-            isInitialized.current = true;
         }
     }, [initialHtml, editorRef]);
 
@@ -51,6 +49,8 @@ interface Protocol {
     orientacoes_gerais: string;
 }
 
+const quickWeights = [5, 10, 15, 20, 25, 30];
+
 const PediatriaPage: React.FC = () => {
     const { addToQueue } = usePrint();
     
@@ -59,12 +59,12 @@ const PediatriaPage: React.FC = () => {
     const [mode, setMode] = useState<'prontas' | 'livre'>('livre');
     const [selectedProtocol, setSelectedProtocol] = useState<number | null>(null);
     const [selectedMeds, setSelectedMeds] = useState<number[]>([]);
+    const [customPosologies, setCustomPosologies] = useState<Record<number, string>>({});
     
     // Estados de Controlo e Dados Dinâmicos
     const [medications, setMedications] = useState<Medication[]>([]);
     const [protocols, setProtocols] = useState<Protocol[]>([]);
     const [isFetchingDB, setIsFetchingDB] = useState(true);
-    const [isLoading, setIsLoading] = useState(false);
     const [generatedPrescription, setGeneratedPrescription] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     
@@ -111,20 +111,18 @@ const PediatriaPage: React.FC = () => {
     }, []);
 
     // ==========================================
-    // 3. MOTOR DE CÁLCULO NATIVO (Interpretador de Regras)
+    // 3. MOTOR DE CÁLCULO NATIVO
     // ==========================================
-    const calculateDose = (weightVal: number, med: Medication) => {
+    const calculateDose = useCallback((weightVal: number, med: Medication) => {
         const regra = med.regra_calculo.toUpperCase();
         let doseCalculada = 0;
         let atingiuMaximo = false;
 
-        // A. Se for dose fixa que não depende do peso (Ex: "Fixo: 1")
         if (regra.includes('FIXO')) {
             const valorFixo = regra.split(':')[1]?.trim() || '1';
             return { valor: valorFixo, atingiuMaximo: false };
         }
 
-        // B. Lógica de Multiplicação ou Divisão (Ex: "Peso * 0.2")
         if (regra.includes('*')) {
             const fator = parseFloat(regra.split('*')[1].trim());
             doseCalculada = weightVal * fator;
@@ -133,26 +131,27 @@ const PediatriaPage: React.FC = () => {
             doseCalculada = weightVal / divisor;
         }
 
-        // C. Trava de Segurança (Dose Máxima)
         if (med.dose_maxima && doseCalculada > med.dose_maxima) {
             doseCalculada = med.dose_maxima;
             atingiuMaximo = true;
         }
         
-        // D. Arredondamentos e Formatação
         let doseFormatada = '';
         if (med.unidade.toLowerCase() === 'gotas') {
             doseFormatada = Math.round(doseCalculada).toString();
         } else if (med.unidade.toLowerCase() === 'ml') {
             doseFormatada = doseCalculada.toFixed(1).replace('.', ',');
+        } else if (med.unidade.toLowerCase().includes('comprimido')) {
+            const rounded = Math.round(doseCalculada * 2) / 2;
+            doseFormatada = rounded.toString().replace('.', ',');
         } else {
-            doseFormatada = doseCalculada.toString();
+            doseFormatada = doseCalculada.toString().replace('.', ',');
         }
 
         return { valor: doseFormatada, atingiuMaximo };
-    };
+    }, []);
 
-    const generateHtmlPrescription = (meds: Medication[], weightVal: number, obsGerais: string) => {
+    const generateHtmlPrescription = useCallback((meds: Medication[], weightVal: number, obsGerais: string, customPoso: Record<number, string>) => {
         const grouped = meds.reduce((acc, med) => {
             if (!acc[med.via]) acc[med.via] = [];
             acc[med.via].push(med);
@@ -178,9 +177,11 @@ const PediatriaPage: React.FC = () => {
                 
                 html += `<div><strong>${inicioLinha}</strong> <span style="color: #64748b; font-weight: normal;">${tracinhos}</span> <strong>${fimLinha}</strong></div>`;
                 
-                let instrucao = `Dar ${resultadoDose.valor} ${med.unidade}, ${med.posologia_padrao}.`;
+                const textoPosologia = customPoso[med.id] !== undefined ? customPoso[med.id] : med.posologia_padrao;
+                let instrucao = `Dar ${resultadoDose.valor} ${med.unidade}, ${textoPosologia}.`;
+                
                 if (resultadoDose.atingiuMaximo) {
-                    instrucao += ` <span style="font-size: 0.9em; font-weight: bold; color: #334155;">(Dose ajustada para o limite máximo)</span>`;
+                    instrucao += ` <span style="font-size: 1.1em;" title="Dose ajustada para o limite máximo" aria-label="Dose Máxima">🔒</span>`;
                 }
                 
                 html += `<div style="margin-bottom: 18px;">${instrucao}</div>`;
@@ -194,61 +195,61 @@ const PediatriaPage: React.FC = () => {
         }
 
         return html;
-    };
+    }, [calculateDose]);
 
     // ==========================================
-    // 4. AÇÕES DA INTERFACE
+    // EFFECT: Calculadora em Tempo Real
     // ==========================================
-    const handleCalculate = async () => {
+    useEffect(() => {
         setError(null);
-        if (!weight || isNaN(parseFloat(weight))) {
-            setError("Obrigatório informar o peso da criança.");
-            return;
-        }
-        
-        if (mode === 'prontas' && !selectedProtocol) {
-            setError("Selecione um protocolo.");
-            return;
-        }
-
-        if (mode === 'livre' && selectedMeds.length === 0) {
-            setError("Selecione pelo menos um medicamento.");
-            return;
-        }
-
-        setIsLoading(true);
         const w = parseFloat(weight);
+
+        // Somente se houver peso válido
+        if (!weight || isNaN(w) || w <= 0) {
+            setGeneratedPrescription(null);
+            return;
+        }
+
         let selectedMedsData: Medication[] = [];
         let orientacoesFinais = orientacoes;
 
         if (mode === 'livre') {
+            if (selectedMeds.length === 0) {
+                setGeneratedPrescription(null);
+                return;
+            }
             selectedMedsData = medications.filter(m => selectedMeds.includes(m.id));
         } else {
+            if (!selectedProtocol) {
+                setGeneratedPrescription(null);
+                return;
+            }
             const protocoloSelecionado = protocols.find(p => p.id === selectedProtocol);
             if (protocoloSelecionado) {
-                // Aqui cruzamos os IDs do protocolo com a lista completa do Supabase
                 selectedMedsData = medications.filter(m => protocoloSelecionado.ids_medicamentos.includes(m.id));
                 if (protocoloSelecionado.orientacoes_gerais) {
-                    orientacoesFinais = orientacoesFinais 
-                        ? `${protocoloSelecionado.orientacoes_gerais}\n\n${orientacoesFinais}`
+                    orientacoesFinais = orientacoes 
+                        ? `${protocoloSelecionado.orientacoes_gerais}\n\n${orientacoes}`
                         : protocoloSelecionado.orientacoes_gerais;
                 }
             }
         }
 
-        setTimeout(() => {
-            const htmlOutput = generateHtmlPrescription(selectedMedsData, w, orientacoesFinais);
-            setGeneratedPrescription(htmlOutput);
-            setIsLoading(false);
-            
-            setTimeout(() => {
-                document.getElementById('prescription-preview')?.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-        }, 300); 
-    };
+        // Real-time generator
+        const htmlOutput = generateHtmlPrescription(selectedMedsData, w, orientacoesFinais, customPosologies);
+        setGeneratedPrescription(htmlOutput);
 
+    }, [weight, mode, selectedProtocol, selectedMeds, customPosologies, orientacoes, medications, protocols, generateHtmlPrescription]);
+
+    // ==========================================
+    // AÇÕES DA INTERFACE
+    // ==========================================
     const toggleMed = (id: number) => {
         setSelectedMeds(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
+    };
+
+    const handleCustomPosology = (medId: number, value: string) => {
+        setCustomPosologies(prev => ({ ...prev, [medId]: value }));
     };
 
     const copyToClipboard = useCallback(() => {
@@ -286,9 +287,6 @@ const PediatriaPage: React.FC = () => {
         </button>
     );
 
-    // ==========================================
-    // ECRÃ DE CARREGAMENTO INICIAL
-    // ==========================================
     if (isFetchingDB) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -299,7 +297,7 @@ const PediatriaPage: React.FC = () => {
     }
 
     return (
-        <div className="container mx-auto max-w-4xl space-y-8 animate-fade-in pb-20">
+        <div className="container mx-auto px-4 lg:px-8 space-y-8 animate-fade-in pb-20 max-w-[1400px]">
             {/* Cabeçalho */}
             <div className="space-y-2">
                 <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 text-sm mb-2">
@@ -308,10 +306,10 @@ const PediatriaPage: React.FC = () => {
                     <span>Pediatria</span>
                 </div>
                 <h1 className="text-3xl font-extrabold tracking-tight text-slate-800 dark:text-white">
-                    Prescrição Pediátrica
+                    Prescrição Pediátrica Dinâmica
                 </h1>
                 <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl">
-                    Cálculo automático de doses baseado no peso (Integrado com Supabase).
+                    Cálculo avançado de doses com Quick Entry & Live Preview.
                 </p>
             </div>
 
@@ -324,151 +322,199 @@ const PediatriaPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Cartão Principal */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-card border border-slate-100 dark:border-slate-700 p-6 md:p-8 space-y-8">
-                {/* Input de Peso */}
-                <div className="w-full md:w-1/3 space-y-4">
-                    <label htmlFor="weight" className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                        Peso da Criança (kg)
-                    </label>
-                    <div className="relative">
-                        <input
-                            id="weight"
-                            type="number"
-                            step="0.1"
-                            placeholder="00.0"
-                            value={weight}
-                            onChange={(e) => setWeight(e.target.value)}
-                            className="w-full text-4xl font-black text-premium-teal bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-600 rounded-xl p-4 focus:outline-none focus:border-premium-teal focus:ring-4 focus:ring-premium-teal/10 transition-all placeholder-slate-300 dark:placeholder-slate-700"
-                        />
-                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xl">kg</span>
-                    </div>
-                </div>
-
-                {/* Seleção de Modo */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <button onClick={() => setMode('prontas')} className={`p-6 rounded-2xl border-2 text-left transition-all ${mode === 'prontas' ? 'border-premium-teal bg-premium-teal/5 shadow-md' : 'border-slate-200 dark:border-slate-700 hover:border-premium-teal/50'}`}>
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Prescrições Prontas</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Condutas clínicas completas e baseadas em diretrizes.</p>
-                    </button>
-                    <button onClick={() => setMode('livre')} className={`p-6 rounded-2xl border-2 text-left transition-all ${mode === 'livre' ? 'border-premium-teal bg-premium-teal/5 shadow-md' : 'border-slate-200 dark:border-slate-700 hover:border-premium-teal/50'}`}>
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Prescrição Livre</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Monte a receita selecionando os medicamentos manualmente.</p>
-                    </button>
-                </div>
-
-                {error && (
-                    <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-bold">
-                        {error}
-                    </div>
-                )}
-
-                {/* Renderização Condicional */}
-                {mode === 'prontas' ? (
+            {/* Layout Lado a Lado (Em Desktop) */}
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+                
+                {/* 🔴 COLUNA ESQUERDA: Controles e Inputs */}
+                <div className="w-full lg:w-[45%] bg-white dark:bg-slate-800 rounded-2xl shadow-card border border-slate-100 dark:border-slate-700 p-6 md:p-8 space-y-8 lg:sticky lg:top-24">
+                    
+                    {/* Input de Peso + Quick Entry */}
                     <div className="space-y-4">
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                            Selecione a Condição Clínica
+                        <label htmlFor="weight" className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+                            Peso da Criança (kg)
                         </label>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {protocols.map((protocol) => (
+                        <div className="relative">
+                            <input
+                                id="weight"
+                                type="number"
+                                step="0.1"
+                                placeholder="00.0"
+                                value={weight}
+                                onChange={(e) => {
+                                    setWeight(e.target.value);
+                                    if (parseFloat(e.target.value) <= 0) {
+                                      setError("Por favor, insira um peso válido maior que zero.");
+                                    } else {
+                                      setError(null);
+                                    }
+                                }}
+                                className="w-full text-4xl font-black text-premium-teal bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-600 rounded-xl p-4 focus:outline-none focus:border-premium-teal focus:ring-4 focus:ring-premium-teal/10 transition-all placeholder-slate-300 dark:placeholder-slate-700"
+                            />
+                            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xl">kg</span>
+                        </div>
+                        {error && <p className="text-sm font-bold text-red-500 mt-1">{error}</p>}
+                        
+                        {/* Quick Weight Pills */}
+                        <div className="flex flex-wrap gap-2 pt-2">
+                            {quickWeights.map(w => (
                                 <button
-                                    key={protocol.id}
-                                    onClick={() => setSelectedProtocol(protocol.id)}
-                                    className={`p-4 rounded-xl border-2 text-sm font-bold transition-all ${selectedProtocol === protocol.id ? 'bg-premium-teal text-white border-premium-teal' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-premium-teal'}`}
+                                    key={w}
+                                    onClick={() => { setWeight(w.toString()); setError(null); }}
+                                    className="px-3 py-1.5 text-sm font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full hover:bg-premium-teal hover:text-white transition-colors"
                                 >
-                                    {protocol.nome_condicao}
+                                    {w}kg
                                 </button>
                             ))}
                         </div>
                     </div>
-                ) : (
-                    <div className="space-y-4">
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                            Selecione os Medicamentos
-                        </label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
-                            {medications.map((med) => (
-                                <div 
-                                    key={med.id}
-                                    onClick={() => toggleMed(med.id)}
-                                    className={`group flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${selectedMeds.includes(med.id) ? 'bg-premium-teal/5 border-premium-teal' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700'}`}
-                                >
-                                    <span className="font-bold text-slate-700 dark:text-slate-200">{med.nome} <span className="text-xs text-slate-500 font-normal block">{med.apresentacao}</span></span>
-                                    <div className={`w-6 h-6 rounded-full border-2 flex-shrink-0 ${selectedMeds.includes(med.id) ? 'bg-premium-teal border-premium-teal' : 'border-slate-300'}`} />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
 
-                <div className="mt-8">
-                    <label htmlFor="orientacoes" className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide mb-2">
-                        Orientações Gerais Extras (Opcional)
-                    </label>
-                    <textarea
-                        id="orientacoes"
-                        rows={3}
-                        value={orientacoes}
-                        onChange={(e) => setOrientacoes(e.target.value)}
-                        placeholder="Ex: Manter hidratação rigorosa, retornar ao PS se houver piora..."
-                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl p-4 focus:outline-none focus:border-premium-teal focus:ring-2 focus:ring-premium-teal/10 transition-all placeholder-slate-400 dark:placeholder-slate-600 resize-none"
-                    />
+                    {/* Seleção de Modo */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <button onClick={() => setMode('prontas')} className={`p-4 rounded-xl border-2 text-left transition-all ${mode === 'prontas' ? 'border-premium-teal bg-premium-teal/5 shadow-md' : 'border-slate-200 dark:border-slate-700 hover:border-premium-teal/50'}`}>
+                            <h3 className="font-bold text-slate-800 dark:text-white">Protocolos Prontos</h3>
+                            <p className="text-xs text-slate-500 mt-1 line-clamp-1">Kits de clínica</p>
+                        </button>
+                        <button onClick={() => setMode('livre')} className={`p-4 rounded-xl border-2 text-left transition-all ${mode === 'livre' ? 'border-premium-teal bg-premium-teal/5 shadow-md' : 'border-slate-200 dark:border-slate-700 hover:border-premium-teal/50'}`}>
+                            <h3 className="font-bold text-slate-800 dark:text-white">Prescrição Livre</h3>
+                            <p className="text-xs text-slate-500 mt-1 line-clamp-1">Personalizado</p>
+                        </button>
+                    </div>
+
+                    {/* Conteúdo Dinâmico do Modo */}
+                    {mode === 'prontas' ? (
+                        <div className="space-y-4">
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+                                Condição Clínica
+                            </label>
+                            <div className="grid grid-cols-2 gap-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                                {protocols.map((protocol) => (
+                                    <button
+                                        key={protocol.id}
+                                        onClick={() => setSelectedProtocol(protocol.id)}
+                                        className={`p-3 rounded-xl border-2 text-sm font-bold transition-all text-left flex items-center justify-between ${selectedProtocol === protocol.id ? 'bg-premium-teal text-white border-premium-teal' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-premium-teal'}`}
+                                    >
+                                        {protocol.nome_condicao}
+                                        {selectedProtocol === protocol.id && (
+                                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+                                Medicamentos do Banco
+                            </label>
+                            <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                                {medications.map((med) => {
+                                    const isSelected = selectedMeds.includes(med.id);
+                                    return (
+                                        <div key={med.id} className={`flex flex-col rounded-xl border transition-all ${isSelected ? 'bg-premium-teal/5 border-premium-teal shadow-sm' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 hover:border-premium-teal/30'}`}>
+                                            <div 
+                                                onClick={() => toggleMed(med.id)}
+                                                className="flex items-center justify-between p-4 cursor-pointer"
+                                            >
+                                                <span className="font-bold text-slate-700 dark:text-slate-200">
+                                                    {med.nome} <span className="text-xs text-slate-500 font-normal block">{med.apresentacao}</span>
+                                                </span>
+                                                <div className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${isSelected ? 'bg-premium-teal border-premium-teal' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                    {isSelected && <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
+                                                </div>
+                                            </div>
+
+                                            {/* Edição On-The-Fly Ativa apenas se selecionado */}
+                                            {isSelected && (
+                                                <div className="px-4 pb-4 border-t border-slate-200 dark:border-slate-700 pt-3 mt-1 animate-fade-in">
+                                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">✏️ Ajustar Posologia Padrão:</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={customPosologies[med.id] !== undefined ? customPosologies[med.id] : med.posologia_padrao}
+                                                        onChange={(e) => handleCustomPosology(med.id, e.target.value)}
+                                                        className="w-full mt-2 text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-premium-teal transition-all"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="mt-6 pt-4">
+                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide mb-2">
+                            Orientações Gerais Fixas (Opcional)
+                        </label>
+                        <textarea
+                            rows={3}
+                            value={orientacoes}
+                            onChange={(e) => setOrientacoes(e.target.value)}
+                            placeholder="Ex: Refazer exames após 7 dias, manter hidratação..."
+                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-premium-teal/20 focus:border-premium-teal transition-all text-sm resize-none"
+                        />
+                    </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 dark:border-slate-700 flex justify-end">
-                    <button
-                        onClick={handleCalculate}
-                        disabled={!weight || (mode === 'prontas' ? !selectedProtocol : selectedMeds.length === 0) || isLoading}
-                        className="bg-premium-teal hover:bg-premium-teal-600 text-white font-bold py-4 px-8 rounded-xl shadow-lg flex items-center gap-3 text-lg disabled:opacity-50 transition-all"
-                    >
-                        {isLoading ? 'A Calcular...' : 'Calcular e Gerar Prescrição'}
-                    </button>
+                {/* 🔵 COLUNA DIREITA: Preview em Tempo Real */}
+                <div className="w-full lg:w-[55%]">
+                    {generatedPrescription ? (
+                        <div className="p-6 md:p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 transition-all">
+                            <div className="flex flex-col items-start mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">
+                                <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2 tracking-tight">
+                                    <svg className="w-6 h-6 text-premium-teal animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    Visualização Dinâmica
+                                </h2>
+                                <p className="text-slate-500 text-sm mt-1 font-medium bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-600">
+                                    Rascunho calculado para <strong className="text-premium-teal">{weight}kg</strong>
+                                </p>
+                            </div>
+                            
+                            <div className="mb-6 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-sm relative">
+                                <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-2">
+                                    <div className="flex items-center gap-1 p-2">
+                                        <ToolbarButton command="bold" title="Negrito" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>} />
+                                        <ToolbarButton command="underline" title="Sublinhado" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg>} />
+                                        <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                                        <ToolbarButton command="justifyLeft" title="Esquerda" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>} />
+                                        <ToolbarButton command="justifyCenter" title="Centro" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg>} />
+                                    </div>
+                                    <span className="text-xs text-slate-400 font-bold pr-4 uppercase tracking-widest flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div> Live</span>
+                                </div>
+                                
+                                <RichTextEditor key={weight + mode + selectedProtocol + selectedMeds.join('-')} editorRef={editorRef} initialHtml={generatedPrescription} />
+                            </div>
+                            
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <button onClick={handleAddToQueue} className={`flex-1 flex items-center justify-center px-4 py-4 font-bold text-white transition-all duration-200 rounded-xl shadow focus:outline-none focus:ring-2 focus:ring-offset-2 ${addedToQueue ? 'bg-green-600 focus:ring-green-500' : 'bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 focus:ring-slate-500'}`}>
+                                    {addedToQueue ? (
+                                        <><svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Prontinho!</>
+                                    ) : (
+                                        <><svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Mandar p/ Impressão</>
+                                    )}
+                                </button>
+                                <button onClick={copyToClipboard} className="flex-1 flex items-center justify-center px-4 py-4 font-bold text-white transition-colors duration-200 rounded-xl shadow bg-premium-teal hover:bg-premium-teal/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-premium-teal">
+                                    {copySuccess ? (
+                                        <><svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Copiado</>
+                                    ) : (
+                                        <><svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg> Copiar Rascunho</>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="h-full min-h-[500px] flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl bg-white/50 dark:bg-slate-800/50 p-10 text-center shadow-sm">
+                            <div className="w-24 h-24 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                                <svg className="w-12 h-12 text-slate-300 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-500 dark:text-slate-400 mb-2">Editor Ocioso</h3>
+                            <p className="text-slate-400 dark:text-slate-500 max-w-sm leading-relaxed">
+                                Para visualizar o rascunho mágico: <br/> <strong>1. Insira o Peso</strong> e <strong>2. Selecione os medicamentos.</strong>
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
-
-            {/* Visualização da Prescrição */}
-            {generatedPrescription && (
-                <div id="prescription-preview" className="p-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xl transition-colors animate-fade-in-up">
-                    <div className="flex flex-col md:flex-row items-start justify-between mb-6 gap-4">
-                        <div>
-                            <h2 className="mb-2 text-3xl font-bold text-slate-800 dark:text-white">Prescrição Gerada</h2>
-                            <p className="text-slate-500 dark:text-slate-400">Peso considerado: {weight}kg</p>
-                        </div>
-                    </div>
-
-                    <label className="block mb-2 text-sm font-bold text-slate-700 dark:text-slate-300">Texto da Prescrição (Editável):</label>
-                    
-                    <div className="mb-8 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-900 focus-within:ring-2 focus-within:ring-premium-teal focus-within:border-transparent transition-all shadow-sm">
-                        <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 select-none">
-                            <ToolbarButton command="bold" title="Negrito" icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path></svg>} />
-                            <ToolbarButton command="underline" title="Sublinhado" icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"></path><line x1="4" y1="21" x2="20" y2="21"></line></svg>} />
-                            <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                            <ToolbarButton command="justifyLeft" title="Alinhar à Esquerda" icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>} />
-                            <ToolbarButton command="justifyCenter" title="Centralizar" icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line></svg>} />
-                        </div>
-                        
-                        <RichTextEditor key={generatedPrescription} editorRef={editorRef} initialHtml={generatedPrescription} />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <button onClick={handleAddToQueue} className={`flex items-center justify-center w-full px-4 py-3 font-semibold text-white transition-all duration-200 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 ${addedToQueue ? 'bg-green-600' : 'bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600'}`}>
-                            {addedToQueue ? (
-                                <><svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Adicionado</>
-                            ) : (
-                                <><svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Adicionar à Impressão</>
-                            )}
-                        </button>
-
-                        <button onClick={copyToClipboard} className="flex items-center justify-center w-full px-4 py-3 font-semibold text-white transition-colors duration-200 rounded-lg shadow-md bg-premium-teal hover:bg-premium-teal/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-premium-teal">
-                            {copySuccess ? (
-                                <><svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Copiado!</>
-                            ) : (
-                                <><svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg> Copiar Texto</>
-                            )}
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

@@ -12,6 +12,7 @@ const MinhasReceitas: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState<Partial<MinhaPrescricao>>({ titulo: '', condicao: '', texto: '' });
     const [notification, setNotification] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -106,16 +107,38 @@ const MinhasReceitas: React.FC = () => {
         showNotification('Adicionado à fila de impressão!', 'success');
     };
 
+    const filteredPrescriptions = prescriptions.filter(p => {
+        const term = searchTerm.toLowerCase();
+        const titulo = p.titulo ? String(p.titulo).toLowerCase() : '';
+        const condicao = p.condicao ? String(p.condicao).toLowerCase() : '';
+        const texto = p.texto ? String(p.texto).toLowerCase() : '';
+        return titulo.includes(term) || condicao.includes(term) || texto.includes(term);
+    });
+
     return (
         <div className="container mx-auto max-w-6xl pb-20">
              <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Minhas Receitas</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Gerencie seus textos e protocolos pessoais.</p>
+                    <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-800 dark:text-white mb-1">Minhas Receitas</h1>
+                    <p className="text-[15px] font-medium text-slate-500 dark:text-slate-400">Gerencie seus textos e protocolos pessoais.</p>
                 </div>
-                <button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-5 py-3 font-semibold text-white bg-premium-teal rounded-xl hover:bg-premium-teal-600 transition-all shadow-lg active:scale-95"><svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>Nova Prescrição</button>
+                <button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-6 py-3 font-bold text-white bg-slate-900 dark:bg-slate-800 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-all shadow-sm active:scale-95 border border-slate-700"><svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>Nova Prescrição</button>
             </div>
             {notification && (<div className={`fixed top-24 right-5 z-50 px-6 py-3 rounded-lg shadow-lg text-white animate-fade-in ${notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>{notification.msg}</div>)}
+            
+            <div className="mb-6 relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar por nome da receita ou condição..."
+                    className="w-full pl-11 pr-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-premium-teal transition-all shadow-sm"
+                />
+            </div>
+
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[1, 2, 3].map(i => (<div key={i} className="h-48 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse"></div>))}
@@ -125,10 +148,15 @@ const MinhasReceitas: React.FC = () => {
                     <h3 className="mt-2 text-sm font-medium text-slate-900 dark:text-white">Nenhuma receita pessoal</h3>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Comece criando sua primeira prescrição personalizada.</p>
                 </div>
+            ) : filteredPrescriptions.length === 0 ? (
+                <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                    <h3 className="mt-2 text-sm font-medium text-slate-900 dark:text-white">Nenhuma receita encontrada</h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Tente ajustar os termos da sua busca.</p>
+                </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {prescriptions.map((p) => (
-                        <div key={p.id} className="relative group bg-white dark:bg-slate-800 rounded-xl shadow-subtle hover:shadow-card border border-slate-200 dark:border-slate-700 p-6 flex flex-col transition-all duration-200">
+                    {filteredPrescriptions.map((p) => (
+                        <div key={p.id} className="relative group bg-white dark:bg-slate-900 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 border border-slate-200/50 dark:border-slate-800 p-6 flex flex-col transition-all duration-200">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">{p.titulo}</h3>

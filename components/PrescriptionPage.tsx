@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { Prescription } from '../types';
 import { usePrint } from '../contexts/PrintContext';
@@ -40,6 +40,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
 const PrescriptionPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const { addToQueue } = usePrint();
     const [prescription, setPrescription] = useState<Prescription | null>(null);
     const [initialHtml, setInitialHtml] = useState('');
@@ -52,6 +53,7 @@ const PrescriptionPage: React.FC = () => {
     
     // State for Toast/Feedback
     const [addedToQueue, setAddedToQueue] = useState(false);
+    const [printTwoCopies, setPrintTwoCopies] = useState(false); // Via Dupla
 
     const [isFavorite, setIsFavorite] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
@@ -153,12 +155,25 @@ const PrescriptionPage: React.FC = () => {
 
     const handleAddToQueue = () => {
         if (prescription && editorRef.current) {
+            const html = editorRef.current.innerHTML;
+            
             addToQueue({
                 id: prescription.id + Date.now(), 
                 titulo: prescription.titulo,
-                texto: editorRef.current.innerHTML, // Get current HTML from DOM
+                texto: html,
                 tipo: 'prescricao'
             });
+
+            if (printTwoCopies) {
+                // Segunda via (ID distinto para evitar React Key Collision)
+                addToQueue({
+                    id: prescription.id + Date.now() + '_via2', 
+                    titulo: prescription.titulo,
+                    texto: html, 
+                    tipo: 'prescricao'
+                });
+            }
+
             setAddedToQueue(true);
             setTimeout(() => setAddedToQueue(false), 2000);
         }
@@ -175,6 +190,14 @@ const PrescriptionPage: React.FC = () => {
     };
 
     // Helper for toolbar buttons
+    const handleGoBack = () => {
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate(prescription?.categoria_id ? `/categoria/${prescription.categoria_id}` : '/porta');
+        }
+    };
+
     const ToolbarButton = ({ command, icon, title }: { command: string, icon: React.ReactNode, title: string }) => (
         <button 
             type="button"
@@ -192,12 +215,12 @@ const PrescriptionPage: React.FC = () => {
     if (error) {
         return (
              <div className="container max-w-4xl mx-auto pb-20">
-                <Link to="/dashboard" className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-semibold transition-all duration-200 transform bg-white dark:bg-slate-800 border rounded-lg shadow-subtle text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
+                <button onClick={handleGoBack} className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-semibold transition-all duration-200 transform bg-white dark:bg-slate-800 border rounded-lg shadow-subtle text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Voltar
-                </Link>
+                </button>
                 <div className="p-4 text-center text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-lg">{error || 'Prescrição não encontrada.'}</div>
              </div>
         );
@@ -205,12 +228,12 @@ const PrescriptionPage: React.FC = () => {
 
     return (
         <div className="container max-w-4xl mx-auto pb-20">
-            <Link to="/dashboard" className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-semibold transition-all duration-200 transform bg-white dark:bg-slate-800 border rounded-lg shadow-subtle text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:-translate-y-px active:translate-y-0">
+            <button onClick={handleGoBack} className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-semibold transition-all duration-200 transform bg-white dark:bg-slate-800 border rounded-lg shadow-subtle text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:-translate-y-px active:translate-y-0">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 Voltar
-            </Link>
+            </button>
 
             {/* Success Toast */}
             {addedToQueue && (
@@ -222,7 +245,7 @@ const PrescriptionPage: React.FC = () => {
                 </div>
             )}
 
-            <div className="p-10 bg-white dark:bg-slate-800 rounded-2xl shadow-xl transition-colors">
+            <div className="bg-white dark:bg-slate-900 border-[1.5px] border-slate-100 dark:border-slate-800/80 rounded-[2rem] p-8 sm:p-12 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.10)] relative transition-all">
                 {loading ? (
                     <div className="animate-pulse space-y-6">
                          <div className="flex flex-col md:flex-row items-start justify-between mb-6 gap-4">
@@ -245,17 +268,17 @@ const PrescriptionPage: React.FC = () => {
                     </div>
                 ) : (
                     <>
-                        <div className="flex flex-col md:flex-row items-start justify-between mb-6 gap-4">
+                        <div className="flex flex-col md:flex-row items-start justify-between mb-8 gap-4">
                             <div>
-                                <h1 className="mb-2 text-3xl font-bold text-slate-800 dark:text-white">{prescription?.titulo}</h1>
-                                <p className="text-slate-500 dark:text-slate-400">Condição: {prescription?.condicao}</p>
+                                <h1 className="mb-2 text-[26px] sm:text-[32px] font-extrabold text-slate-800 dark:text-white tracking-tight leading-tight">{prescription?.titulo}</h1>
+                                <p className="text-[14px] font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">Condição: <span className="font-bold text-slate-700 dark:text-slate-300">{prescription?.condicao}</span></p>
                             </div>
                             
                             {userId && (
                                 <button
                                     onClick={handleToggleFavorite}
                                     disabled={isTogglingFavorite}
-                                    className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 text-sm font-bold transition-all rounded-xl shadow-sm transform active:scale-95 border ${isFavorite ? 'bg-yellow-400 text-yellow-900 border-yellow-500' : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 hover:text-slate-800 dark:hover:text-white'}`}
+                                    className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 text-[13px] font-extrabold uppercase tracking-wide transition-all rounded-[1rem] shadow-sm transform active:scale-95 border-[1.5px] ${isFavorite ? 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:border-amber-700/50 dark:text-amber-400 hover:bg-amber-200' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700'}`}
                                 >
                                     {isTogglingFavorite ? (
                                         'Processando...'
@@ -277,12 +300,12 @@ const PrescriptionPage: React.FC = () => {
                             ))}
                         </div>
 
-                        <label className="block mb-2 text-sm font-bold text-slate-700 dark:text-slate-300">Texto da Prescrição (Editável):</label>
+                        <label className="block mb-2 text-[11px] font-black text-slate-500 dark:text-slate-400 tracking-widest uppercase">Texto da Prescrição (Editável)</label>
                         
                         {/* Rich Text Editor Container */}
-                        <div className="mb-8 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-900 focus-within:ring-2 focus-within:ring-premium-teal focus-within:border-transparent transition-all shadow-sm">
+                        <div className="mb-8 border-[1.5px] border-slate-200/80 dark:border-slate-700/80 rounded-2xl overflow-hidden bg-[#fdfdfd] dark:bg-slate-950/50 focus-within:ring-4 focus-within:ring-premium-teal/20 focus-within:border-premium-teal transition-all shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
                             {/* Toolbar */}
-                            <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 select-none">
+                            <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 select-none">
                                 <ToolbarButton 
                                     command="bold" 
                                     title="Negrito"
@@ -319,42 +342,56 @@ const PrescriptionPage: React.FC = () => {
                             />
                         </div>
                         
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            {/* Print Button */}
-                            <button
-                                onClick={handleAddToQueue}
-                                className={`flex items-center justify-center w-full px-4 py-3 font-semibold text-white transition-all duration-200 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 ${addedToQueue ? 'bg-green-600' : 'bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600'}`}
-                            >
-                                {addedToQueue ? (
-                                    <>
-                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                                        Adicionado
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                        Adicionar à Impressão
-                                    </>
-                                )}
-                            </button>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 items-start">
+                            {/* Print Block */}
+                            <div className={`flex flex-col gap-3 w-full ${!userId ? 'sm:col-span-1' : ''}`}>
+                                <button
+                                    onClick={handleAddToQueue}
+                                    className={`flex items-center justify-center w-full px-4 py-4 font-extrabold tracking-wide uppercase text-[14px] text-white transition-all duration-200 rounded-xl shadow-[0_8px_20px_-8px_rgba(0,0,0,0.3)] focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-slate-500 focus:ring-offset-white dark:focus:ring-offset-slate-900 ${addedToQueue ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600'}`}
+                                >
+                                    {addedToQueue ? (
+                                        <>
+                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                            {printTwoCopies ? 'Adicionadas 2 Vias' : 'Adicionado'}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                            Adicionar à Impressão
+                                        </>
+                                    )}
+                                </button>
+                                
+                                <label className="flex items-center justify-center gap-2 text-[13px] font-bold text-slate-500 dark:text-slate-400 cursor-pointer select-none hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={printTwoCopies}
+                                        onChange={(e) => setPrintTwoCopies(e.target.checked)}
+                                        className="w-[18px] h-[18px] text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-600 rounded focus:ring-slate-800 transition-colors bg-white dark:bg-slate-800 cursor-pointer shadow-sm"
+                                    />
+                                    Imprimir em 2 vias
+                                </label>
+                            </div>
 
-                            {/* Copy Button */}
-                            <button
-                                onClick={copyToClipboard}
-                                className={`flex items-center justify-center w-full px-4 py-3 font-semibold text-white transition-colors duration-200 rounded-lg shadow-md bg-premium-teal hover:bg-premium-teal/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-premium-teal ${!userId && 'col-span-2'}`}
-                            >
-                                {copySuccess ? (
-                                    <>
-                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                                        Copiado!
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                                        Copiar Texto
-                                    </>
-                                )}
-                            </button>
+                            {/* Copy Block */}
+                            <div className={`flex flex-col gap-3 w-full ${!userId ? 'col-span-2 sm:col-span-1' : ''}`}>
+                                <button
+                                    onClick={copyToClipboard}
+                                    className={`flex items-center justify-center w-full px-4 py-4 font-extrabold tracking-wide uppercase text-[14px] text-white transition-all duration-200 rounded-xl shadow-[0_8px_20px_-8px_rgba(20,184,166,0.5)] bg-premium-teal hover:bg-premium-teal/90 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-premium-teal focus:ring-offset-white dark:focus:ring-offset-slate-900 border border-transparent`}
+                                >
+                                    {copySuccess ? (
+                                        <>
+                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                            Copiado!
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                                            Copiar Texto
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </>
                 )}

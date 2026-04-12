@@ -61,6 +61,7 @@ const FirstAccessModal: React.FC = () => {
     // Ação de Fechar e Entrar
     const handleComplete = () => {
         setIsOpen(false);
+        window.location.hash = '/tutorial';
     };
 
     // ETAPA 1: Salvar Perfil
