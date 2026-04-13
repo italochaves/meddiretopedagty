@@ -215,7 +215,7 @@ const PrescriptionPage: React.FC = () => {
     if (error) {
         return (
              <div className="container max-w-4xl mx-auto pb-20">
-                <button onClick={handleGoBack} className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-semibold transition-all duration-200 transform bg-white dark:bg-slate-800 border rounded-lg shadow-subtle text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
+                <button onClick={handleGoBack} className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-bold transition-all duration-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-subtle text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 active:scale-[0.98]">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
@@ -228,7 +228,7 @@ const PrescriptionPage: React.FC = () => {
 
     return (
         <div className="container max-w-4xl mx-auto pb-20">
-            <button onClick={handleGoBack} className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-semibold transition-all duration-200 transform bg-white dark:bg-slate-800 border rounded-lg shadow-subtle text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:-translate-y-px active:translate-y-0">
+                <button onClick={handleGoBack} className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-bold transition-all duration-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-subtle text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 hover:-translate-y-px active:translate-y-0 active:scale-[0.98]">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
@@ -266,12 +266,20 @@ const PrescriptionPage: React.FC = () => {
                              <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
                          </div>
                     </div>
+                ) : !prescription ? (
+                    <div className="p-10 text-center">
+                        <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </div>
+                        <p className="text-[15px] font-bold text-slate-600 dark:text-slate-300 mb-1">Prescrição não disponível</p>
+                        <p className="text-[13px] text-slate-400 font-medium">Não foi possível carregar os dados desta prescrição.</p>
+                    </div>
                 ) : (
                     <>
                         <div className="flex flex-col md:flex-row items-start justify-between mb-8 gap-4">
                             <div>
                                 <h1 className="mb-2 text-[26px] sm:text-[32px] font-extrabold text-slate-800 dark:text-white tracking-tight leading-tight">{prescription?.titulo}</h1>
-                                <p className="text-[14px] font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">Condição: <span className="font-bold text-slate-700 dark:text-slate-300">{prescription?.condicao}</span></p>
+                                <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 tracking-wide uppercase">Condição: <span className="font-bold text-slate-700 dark:text-slate-300">{prescription?.condicao}</span></p>
                             </div>
                             
                             {userId && (
@@ -294,16 +302,18 @@ const PrescriptionPage: React.FC = () => {
                             )}
                         </div>
                         
+                        {(prescription?.tags ?? []).length > 0 && (
                         <div className="mb-8 space-x-2">
-                            {prescription?.tags.map((tag, index) => (
-                                <span key={index} className="inline-block px-3 py-1 text-xs font-semibold rounded-full text-premium-teal-800 bg-premium-teal-100 dark:bg-premium-teal-900/50 dark:text-premium-teal-200">{tag}</span>
+                            {(prescription?.tags ?? []).map((tag, index) => (
+                                <span key={index} className="inline-block px-3 py-1 text-[11px] font-bold rounded-full text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">{tag}</span>
                             ))}
                         </div>
+                        )}
 
                         <label className="block mb-2 text-[11px] font-black text-slate-500 dark:text-slate-400 tracking-widest uppercase">Texto da Prescrição (Editável)</label>
                         
                         {/* Rich Text Editor Container */}
-                        <div className="mb-8 border-[1.5px] border-slate-200/80 dark:border-slate-700/80 rounded-2xl overflow-hidden bg-[#fdfdfd] dark:bg-slate-950/50 focus-within:ring-4 focus-within:ring-premium-teal/20 focus-within:border-premium-teal transition-all shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
+                        <div className="mb-8 border-[1.5px] border-slate-200 dark:border-slate-700/80 rounded-2xl overflow-hidden bg-[#fdfdfd] dark:bg-slate-950/50 focus-within:ring-[3px] focus-within:ring-premium-teal/20 focus-within:border-premium-teal transition-all shadow-subtle">
                             {/* Toolbar */}
                             <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 select-none">
                                 <ToolbarButton 

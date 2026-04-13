@@ -69,21 +69,21 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
     // New "The Clinical Atelier" styling pattern for links
     const isActive = (path: string) => 
         location.pathname === path 
-            ? 'text-slate-900 dark:text-white font-bold bg-slate-100 dark:bg-slate-800 rounded-xl transition-all' 
-            : 'text-slate-500 font-semibold hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-all';
+            ? 'text-premium-teal font-bold bg-premium-teal/10 dark:bg-premium-teal/15 rounded-xl transition-all' 
+            : 'text-slate-600 font-semibold hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/60 rounded-xl transition-all';
 
     const closeSidebar = () => setIsSidebarOpen(false);
 
     const mobileLinkClass = (path: string) => 
-        `block px-4 py-3 text-base font-medium transition-colors ${
+        `block px-4 py-3 text-[15px] font-semibold transition-colors ${
             location.pathname === path
-            ? 'text-premium-teal bg-premium-teal/10 border-r-4 border-premium-teal'
-            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+            ? 'text-premium-teal bg-premium-teal/8 border-r-[3px] border-premium-teal'
+            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900'
         }`;
 
     return (
         <>
-            <header className="sticky top-0 z-40 w-full bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800 shadow-sm print:hidden transition-colors duration-200">
+            <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-subtle backdrop-blur-sm print:hidden transition-colors duration-200">
                 <div className="container px-4 mx-auto sm:px-6 lg:px-8 max-w-[1400px]">
                     <div className="flex items-center justify-between h-[72px]">
                         
@@ -92,7 +92,7 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
                             {/* Mobile Hamburger Button */}
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
-                                className="p-2 -ml-2 text-slate-500 rounded-md xl:hidden hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none"
+                                className="p-2 -ml-2 text-slate-500 rounded-md lg:hidden hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none"
                                 aria-label="Abrir menu"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -110,7 +110,7 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
                             {/* Desktop Navigation */}
                             <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2 text-[15px]">
                                 <Link to="/dashboard" className={`px-3 xl:px-4 py-2 ${isActive('/dashboard')}`}>Início</Link>
-                                <Link to="/minhas-receitas" className={`px-3 xl:px-4 py-2 ${isActive('/minhas-receitas')}`}>Minhas Receitas</Link>
+
                                 <Link to="/calculadoras" className={`px-3 xl:px-4 py-2 ${isActive('/calculadoras')}`}>Calculadoras</Link>
                                 <Link to="/settings" className={`px-3 xl:px-4 py-2 ${isActive('/settings')}`}>Configurações de Impressão</Link>
                             </nav>
@@ -121,8 +121,8 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
                             
                             {/* Desktop Secondary Links */}
                             <div className="hidden lg:flex items-center mr-2 xl:mr-4 border-r border-slate-200 dark:border-slate-700 pr-4 xl:pr-6">
-                                <Link to="/meu-cadastro" className="text-[14px] text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium px-2 xl:px-3">Meu Perfil</Link>
-                                <Link to="/tutorial" className="text-[14px] text-slate-500 hover:text-slate-800 dark:text-slate-400 font-medium px-2 xl:px-3">Suporte</Link>
+                                <Link to="/meu-cadastro" className="text-[14px] text-slate-600 dark:text-slate-400 font-semibold px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 dark:hover:text-white dark:hover:bg-slate-800 transition-all">Meu Perfil</Link>
+                                <Link to="/tutorial" className="text-[14px] text-slate-600 dark:text-slate-400 font-semibold px-2.5 xl:px-3 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100/70 dark:hover:text-white dark:hover:bg-slate-800 transition-all">Ajuda</Link>
                             </div>
 
                             {/* Theme Toggle Button */}
@@ -155,7 +155,7 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
                                         {isLoggingOut ? 'Saindo...' : 'Sair da Conta'}
                                     </button>
                                 </div>
-                                <div className="w-[38px] h-[38px] rounded-full bg-slate-900 dark:bg-slate-700 flex items-center justify-center text-white font-bold text-sm shadow-sm overflow-hidden border-2 border-white dark:border-slate-800">
+                                <div className="w-[38px] h-[38px] rounded-full bg-slate-900 dark:bg-slate-700 flex items-center justify-center text-white font-bold text-sm shadow-md overflow-hidden border-2 border-white dark:border-slate-700 ring-1 ring-slate-200 dark:ring-slate-700">
                                     {profile?.nome 
                                         ? profile.nome.trim().charAt(0).toUpperCase() 
                                         : (greeting && greeting !== 'Dr(a)' ? greeting.trim().charAt(0).toUpperCase() : 'U')
@@ -170,14 +170,14 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div 
-                    className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm xl:hidden"
+                    className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm lg:hidden"
                     onClick={closeSidebar}
                 ></div>
             )}
 
             {/* Mobile Sidebar Panel */}
             <div 
-                className={`fixed top-0 left-0 z-50 h-full w-[280px] bg-white dark:bg-slate-900 shadow-2xl transform transition-transform duration-300 ease-out xl:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed top-0 left-0 z-[60] h-full w-[280px] bg-white dark:bg-slate-900 shadow-2xl transform transition-transform duration-300 ease-out lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 <div className="flex flex-col h-full">
                     {/* Sidebar Header */}
@@ -206,9 +206,6 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
                         <Link to="/dashboard" onClick={closeSidebar} className={mobileLinkClass('/dashboard')}>
                             Início
                         </Link>
-                        <Link to="/minhas-receitas" onClick={closeSidebar} className={mobileLinkClass('/minhas-receitas')}>
-                            Minhas Receitas
-                        </Link>
                         <Link to="/calculadoras" onClick={closeSidebar} className={mobileLinkClass('/calculadoras')}>
                             Calculadoras
                         </Link>
@@ -223,7 +220,7 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
                             Meu Perfil
                         </Link>
                         <Link to="/tutorial" onClick={closeSidebar} className={mobileLinkClass('/tutorial')}>
-                            Suporte
+                            Ajuda
                         </Link>
                     </nav>
 

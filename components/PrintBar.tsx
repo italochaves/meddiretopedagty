@@ -70,8 +70,9 @@ const PrintBar: React.FC = () => {
             )}
 
             {/* Slide-Up Drawer da Fila */}
-            <div className={`fixed bottom-[88px] left-0 right-0 z-[70] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] print:hidden px-4 md:px-0 pointer-events-none ${isDrawerOpen ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
-                <div className={`max-w-4xl mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2rem] shadow-[0_30px_80px_-15px_rgba(0,0,0,0.5)] border-[1.5px] border-slate-200/50 dark:border-slate-800/80 max-h-[70vh] flex flex-col pointer-events-auto transform transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isDrawerOpen ? 'scale-100' : 'scale-95'}`}>
+            {isDrawerOpen && (
+            <div className="fixed bottom-[88px] left-0 right-0 z-[70] print:hidden px-4 md:px-0 animate-fade-in">
+                <div className="max-w-4xl mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2rem] shadow-[0_30px_80px_-15px_rgba(0,0,0,0.5)] border-[1.5px] border-slate-200/50 dark:border-slate-800/80 max-h-[70vh] flex flex-col">
                     
                     {/* Drawer Header */}
                     <div className="flex items-center justify-between p-6 px-8 border-b-[1.5px] border-slate-100 dark:border-slate-800/80">
@@ -111,7 +112,7 @@ const PrintBar: React.FC = () => {
                                         </div>
                                         <button 
                                             onClick={() => removeFromQueue(item.id)}
-                                            className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                            className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-60 sm:opacity-0 sm:group-hover:opacity-100"
                                             title="Remover item da fila"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -123,10 +124,11 @@ const PrintBar: React.FC = () => {
                     </div>
                 </div>
             </div>
+            )}
 
             {/* Barra Principal Base Premium */}
-            <div className="fixed bottom-0 left-0 right-0 z-[48] pb-4 px-4 pointer-events-none print:hidden">
-                <div className="container mx-auto pointer-events-auto bg-white dark:bg-slate-900 border-[2px] border-slate-200 dark:border-slate-700 rounded-[2rem] shadow-[0_0_60px_-15px_rgba(0,0,0,0.3)] ring-4 ring-slate-100 dark:ring-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 p-3 pr-4 max-w-6xl transition-all">
+            <div className="fixed bottom-4 left-4 right-4 z-[48] print:hidden flex justify-center">
+                <div className="bg-white dark:bg-slate-900 border-[2px] border-slate-200 dark:border-slate-700 rounded-[2rem] shadow-[0_0_60px_-15px_rgba(0,0,0,0.3)] ring-4 ring-slate-100 dark:ring-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 p-3 pr-4 max-w-6xl w-full transition-all">
                     {/* Input NOME PACIENTE */}
                     <div className="flex-1 w-full max-w-md relative flex items-center bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden pr-2">
                         <div className="flex-shrink-0 w-12 flex items-center justify-center text-slate-400 border-r border-slate-200/60 dark:border-slate-800/60 mr-2">
@@ -242,7 +244,7 @@ const PrintBar: React.FC = () => {
                                 type="button"
                                 onClick={handlePrint}
                                 disabled={activeLetterhead !== null && !isBackgroundLoaded}
-                                className="flex relative z-40 items-center gap-2 px-6 py-4 font-extrabold text-white transition-all bg-premium-teal rounded-2xl hover:bg-premium-teal-700 shadow-[0_8px_20px_rgba(15,118,110,0.25)] hover:shadow-[0_12px_25px_rgba(15,118,110,0.4)] active:transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-[13px]"
+                                className="flex items-center gap-2 px-6 py-4 font-extrabold text-white transition-all bg-premium-teal rounded-2xl hover:bg-premium-teal-700 shadow-[0_8px_20px_rgba(15,118,110,0.25)] hover:shadow-[0_12px_25px_rgba(15,118,110,0.4)] active:transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-[13px]"
                             >
                                 {activeLetterhead && !isBackgroundLoaded ? (
                                     <>

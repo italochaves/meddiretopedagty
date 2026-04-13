@@ -487,7 +487,7 @@ const PrescricaoLivre: React.FC = () => {
                                         </span>
                                         <button
                                             onClick={() => removeItem(item.uid)}
-                                            className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 p-1 transition-opacity flex-shrink-0"
+                                            className="opacity-60 sm:opacity-0 sm:group-hover:opacity-100 text-red-400 hover:text-red-600 p-1 transition-opacity flex-shrink-0"
                                             title="Remover item"
                                         >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>

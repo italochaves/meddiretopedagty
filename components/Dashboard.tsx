@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { Prescription } from '../types';
@@ -14,14 +14,60 @@ const Dashboard: React.FC<DashboardProps> = () => {
     const [searchResults, setSearchResults] = useState<Prescription[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [greeting, setGreeting] = useState('Bem-vindo, Dr.');
-    const [notes, setNotes] = useState(() => {
-        try { return localStorage.getItem('meddireto_notes') || ''; } catch { return ''; }
-    });
+    const [notes, setNotes] = useState('');
+    const [notesStatus, setNotesStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'deleted' | 'error'>('loading');
+    const [notesUserId, setNotesUserId] = useState<string | null>(null);
+    const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const handleNotesChange = (value: string) => {
-        setNotes(value);
-        try { localStorage.setItem('meddireto_notes', value); } catch {}
-    };
+    const NOTES_MAX_LENGTH = 5000;
+
+    // ─── Notes: persist to Supabase ───
+    const persistNote = useCallback(async (content: string, userId: string) => {
+        const trimmed = content.trim();
+        try {
+            if (trimmed.length === 0) {
+                // DELETE the row when content is empty
+                const { error } = await supabase
+                    .from('user_notes')
+                    .delete()
+                    .eq('user_id', userId);
+                if (error) throw error;
+                setNotesStatus('deleted');
+            } else {
+                // UPSERT when there is content
+                const { error } = await supabase
+                    .from('user_notes')
+                    .upsert(
+                        { user_id: userId, content: trimmed },
+                        { onConflict: 'user_id' }
+                    );
+                if (error) throw error;
+                setNotesStatus('saved');
+            }
+        } catch (err) {
+            console.error('Erro ao salvar anotação:', err);
+            setNotesStatus('error');
+        }
+    }, []);
+
+    const handleNotesChange = useCallback((value: string) => {
+        // Enforce character limit
+        const clamped = value.length > NOTES_MAX_LENGTH ? value.slice(0, NOTES_MAX_LENGTH) : value;
+        setNotes(clamped);
+        setNotesStatus('saving');
+
+        // Debounce: clear previous timer, set new one
+        if (notesTimerRef.current) clearTimeout(notesTimerRef.current);
+        notesTimerRef.current = setTimeout(() => {
+            if (notesUserId) persistNote(clamped, notesUserId);
+        }, 800);
+    }, [notesUserId, persistNote]);
+
+    const handleNotesBlur = useCallback(() => {
+        // Flush any pending debounce and save immediately on blur
+        if (notesTimerRef.current) clearTimeout(notesTimerRef.current);
+        if (notesUserId) persistNote(notes, notesUserId);
+    }, [notes, notesUserId, persistNote]);
 
     const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -105,6 +151,22 @@ const Dashboard: React.FC<DashboardProps> = () => {
                     }
                 })();
 
+                // User Notes
+                setNotesUserId(user.id);
+                (async () => {
+                    const { data, error } = await supabase
+                        .from('user_notes')
+                        .select('content')
+                        .eq('user_id', user.id)
+                        .maybeSingle();
+                    if (mounted) {
+                        if (!error && data?.content) {
+                            setNotes(data.content);
+                        }
+                        setNotesStatus('idle');
+                    }
+                })();
+
             } catch (error) {
                 console.error("Erro fatal no carregamento:", error);
             }
@@ -150,7 +212,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                 </div>
 
                 {/* Conteúdo — sem overflow-hidden para dropdown escapar */}
-                <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center px-6 py-12 sm:py-14 text-center">
+                <div className="relative z-[2] w-full max-w-4xl mx-auto flex flex-col items-center px-6 py-12 sm:py-14 text-center">
                     {/* Marca de credibilidade sutil acima do título */}
                     <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-bold text-slate-300/80 uppercase tracking-[0.15em] mb-5 backdrop-blur-sm">
                         <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></div>
@@ -175,7 +237,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Pesquise por medicações, doenças ou documentos..."
-                            className="w-full h-[58px] sm:h-[64px] pl-[50px] pr-20 text-[15px] text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 border border-white/20 dark:border-slate-700 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.2)] focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all font-semibold placeholder-slate-400 dark:placeholder-slate-500"
+                            className="w-full h-[58px] sm:h-[64px] pl-[50px] pr-20 text-[15px] text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 border border-white/20 dark:border-slate-700 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.2)] focus:outline-none focus:ring-2 focus:ring-teal-400/60 focus:border-teal-400/60 transition-all font-semibold placeholder-slate-400 dark:placeholder-slate-500"
                         />
 
 
@@ -197,12 +259,12 @@ const Dashboard: React.FC<DashboardProps> = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="p-12 text-center">
+                                    <div className="p-10 text-center">
                                         <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <svg className="w-5 h-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                         </div>
                                         <p className="text-[15px] font-bold text-slate-700 dark:text-slate-300 mb-1">Nenhum protocolo encontrado</p>
-                                        <p className="text-[13px] text-slate-400 font-medium">Verifique os termos ou busque por sinônimos.</p>
+                                        <p className="text-[13px] text-slate-500 font-medium">Tente outro diagnóstico, princípio ativo ou sinônimo clínico.</p>
                                     </div>
                                 )}
                             </div>
@@ -212,7 +274,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
             </section>
 
             {/* 6 MÓDULOS PRINCIPAIS — Grade 3×2 — Paleta Clínica Refinada */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mt-8 relative z-20">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mt-8 relative">
 
                 {/* Ambulatório */}
                 <Link to="/porta" className="group flex items-start gap-5 p-6 sm:p-7 bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800/80 rounded-2xl shadow-[0_2px_15px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_35px_rgba(30,100,180,0.10)] hover:-translate-y-1 hover:border-blue-300/60 dark:hover:border-blue-700/40 transition-all duration-300">
@@ -320,8 +382,12 @@ const Dashboard: React.FC<DashboardProps> = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="p-10 text-center bg-slate-50 dark:bg-slate-900/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-                            <p className="text-[15px] font-medium text-slate-500 dark:text-slate-400">Nenhum atalho salvo. Marque prescrições com a estrela para acesso rápido.</p>
+                        <div className="p-10 text-center bg-white dark:bg-slate-900/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+                            <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                            </div>
+                            <p className="text-[15px] font-bold text-slate-700 dark:text-slate-300 mb-1">Nenhum favorito salvo</p>
+                            <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 max-w-xs mx-auto">Abra qualquer prescrição e toque na estrela para salvar o acesso rápido aqui.</p>
                         </div>
                     )}
                 </section>
@@ -340,7 +406,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                         </div>
                         <div className="space-y-3">
                             {/* Prescrição Adulto */}
-                            <Link to="/porta" className="group flex items-center gap-4 p-5 bg-white dark:bg-slate-900 border-[1.5px] border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-[0_4px_15px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_25px_-5px_rgba(0,0,0,0.06)] hover:border-blue-200 dark:hover:border-blue-800/50 hover:-translate-y-0.5 transition-all duration-300">
+                            <Link to="/porta" className="group flex items-center gap-4 p-5 bg-white dark:bg-slate-900 border-[1.5px] border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-[0_4px_15px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_25px_-5px_rgba(0,0,0,0.06)] hover:border-blue-200 dark:hover:border-blue-800/50 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200">
                                 <div className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-blue-600 bg-blue-50 dark:bg-blue-500/10 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-[20px] h-[20px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
                                 </div>
@@ -352,7 +418,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                             </Link>
 
                             {/* Prescrição Pediátrica */}
-                            <Link to="/pediatria" className="group flex items-center gap-4 p-5 bg-white dark:bg-slate-900 border-[1.5px] border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-[0_4px_15px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_25px_-5px_rgba(0,0,0,0.06)] hover:border-amber-200 dark:hover:border-amber-800/50 hover:-translate-y-0.5 transition-all duration-300">
+                            <Link to="/pediatria" className="group flex items-center gap-4 p-5 bg-white dark:bg-slate-900 border-[1.5px] border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-[0_4px_15px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_25px_-5px_rgba(0,0,0,0.06)] hover:border-amber-200 dark:hover:border-amber-800/50 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200">
                                 <div className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-amber-600 bg-amber-50 dark:bg-amber-500/10 rounded-xl group-hover:bg-amber-600 group-hover:text-white transition-all duration-300">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-[20px] h-[20px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M5 5a2 2 0 0 1 4 0v6a4 4 0 0 0 8 0v-1"/><circle cx="17" cy="10" r="2"/><circle cx="19" cy="19" r="2"/><path d="M17 12v5a2 2 0 0 0 2 2"/></svg>
                                 </div>
@@ -364,7 +430,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
                             </Link>
 
                             {/* Atestado Médico */}
-                            <Link to="/documentos/atestado" className="group flex items-center gap-4 p-5 bg-white dark:bg-slate-900 border-[1.5px] border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-[0_4px_15px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_25px_-5px_rgba(0,0,0,0.06)] hover:border-emerald-200 dark:hover:border-emerald-800/50 hover:-translate-y-0.5 transition-all duration-300">
+                            <Link to="/documentos/atestado" className="group flex items-center gap-4 p-5 bg-white dark:bg-slate-900 border-[1.5px] border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-[0_4px_15px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_25px_-5px_rgba(0,0,0,0.06)] hover:border-emerald-200 dark:hover:border-emerald-800/50 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200">
                                 <div className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="w-[20px] h-[20px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/><path d="M9 9h2"/></svg>
                                 </div>
@@ -384,15 +450,46 @@ const Dashboard: React.FC<DashboardProps> = () => {
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                                 Anotações
                             </h2>
-                            <p className="text-[14px] text-slate-500 font-medium">Suas notas pessoais do plantão</p>
+                            <div className="flex items-center justify-between">
+                                <p className="text-[14px] text-slate-500 font-medium">Suas notas pessoais do plantão</p>
+                                <div className="flex items-center gap-2">
+                                    {notesStatus === 'saving' && (
+                                        <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                                            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                            Salvando
+                                        </span>
+                                    )}
+                                    {notesStatus === 'saved' && (
+                                        <span className="flex items-center gap-1 text-[11px] font-bold text-green-500 uppercase tracking-wider">
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                            Salvo
+                                        </span>
+                                    )}
+                                    {notesStatus === 'deleted' && (
+                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Limpo</span>
+                                    )}
+                                    {notesStatus === 'error' && (
+                                        <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider">Erro ao salvar</span>
+                                    )}
+                                    {notesStatus === 'loading' && (
+                                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider animate-pulse">Carregando...</span>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                        <div className="bg-white dark:bg-slate-900 border-[1.5px] border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-[0_4px_15px_-5px_rgba(0,0,0,0.03)] overflow-hidden h-[calc(100%-60px)] min-h-[220px]">
+                        <div className="bg-white dark:bg-slate-900 border-[1.5px] border-slate-100 dark:border-slate-800/80 rounded-2xl shadow-[0_4px_15px_-5px_rgba(0,0,0,0.03)] overflow-hidden h-[calc(100%-60px)] min-h-[220px] relative">
                             <textarea
                                 value={notes}
                                 onChange={(e) => handleNotesChange(e.target.value)}
-                                placeholder="Anote algo rápido aqui… lembretes do plantão, pendências, condutas a revisar..."
-                                className="w-full h-full min-h-[220px] p-5 text-[14px] font-medium text-slate-700 dark:text-slate-300 bg-transparent border-none outline-none resize-none placeholder-slate-400 dark:placeholder-slate-600 leading-relaxed"
+                                onBlur={handleNotesBlur}
+                                maxLength={NOTES_MAX_LENGTH}
+                                disabled={notesStatus === 'loading'}
+                                placeholder={notesStatus === 'loading' ? 'Carregando suas anotações...' : 'Anote algo rápido aqui… lembretes do plantão, pendências, condutas a revisar...'}
+                                className="w-full h-full min-h-[220px] p-5 pb-8 text-[14px] font-medium text-slate-700 dark:text-slate-300 bg-transparent border-none outline-none resize-none placeholder-slate-400 dark:placeholder-slate-600 leading-relaxed disabled:opacity-50 disabled:cursor-wait"
                             />
+                            <div className="absolute bottom-2 right-4 text-[11px] font-bold text-slate-300 dark:text-slate-600 tabular-nums">
+                                {notes.length}/{NOTES_MAX_LENGTH}
+                            </div>
                         </div>
                     </div>
 

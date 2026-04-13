@@ -53,7 +53,7 @@ const FavoritosPage: React.FC = () => {
             <div className="mb-8">
                 <h1 className="text-[26px] sm:text-[30px] font-extrabold text-slate-800 dark:text-white tracking-tight flex items-center gap-3 mb-1">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-amber-500" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                     </svg>
                     Meus Favoritos
                 </h1>
@@ -96,7 +96,7 @@ const FavoritosPage: React.FC = () => {
                                         Ver prescrição
                                     </span>
                                     <svg className="w-4 h-4 text-amber-400 group-hover:text-amber-500 fill-current transition-colors" viewBox="0 0 24 24">
-                                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                                     </svg>
                                 </div>
                             </Link>
@@ -107,7 +107,7 @@ const FavoritosPage: React.FC = () => {
                 <div className="flex flex-col items-center justify-center py-24 px-6 text-center bg-slate-50 dark:bg-slate-900/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
                     <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mb-5">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                         </svg>
                     </div>
                     <p className="text-[18px] font-bold text-slate-700 dark:text-slate-300 mb-2">Nenhum favorito ainda</p>

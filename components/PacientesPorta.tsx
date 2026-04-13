@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { Category, Prescription } from '../types';
@@ -217,7 +217,7 @@ const PacientesPorta: React.FC = () => {
             {/* BOTÃO VOLTAR NATIVO (Histórico real) */}
             <button 
                 onClick={handleGoBack}
-                className="mb-8 flex items-center gap-2 text-[14px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors uppercase tracking-widest"
+                className="mb-8 flex items-center gap-2 text-[14px] font-bold text-slate-600 hover:text-slate-900 dark:hover:text-white transition-colors uppercase tracking-widest active:scale-[0.97]"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -243,7 +243,7 @@ const PacientesPorta: React.FC = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Buscar por diagnóstico, medicamento, sintoma ou protocolo..."
-                    className="w-full h-[64px] sm:h-[72px] pl-[60px] pr-20 text-[16px] text-slate-800 bg-white border border-transparent rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.06)] focus:outline-none focus:ring-[4px] focus:ring-premium-teal/20 focus:border-premium-teal transition-all font-bold placeholder-slate-400"
+                    className="w-full h-[64px] sm:h-[72px] pl-[60px] pr-20 text-[16px] text-slate-800 bg-white border border-slate-200 rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.05)] focus:outline-none focus:ring-[3px] focus:ring-premium-teal/25 focus:border-premium-teal transition-all font-bold placeholder-slate-400"
                 />
 
                 {/* Dropdown de Busca */}
@@ -314,9 +314,9 @@ const PacientesPorta: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="w-full p-8 sm:p-10 bg-slate-50/80 dark:bg-slate-900/50 border border-dashed border-slate-300 dark:border-slate-700 rounded-[1.5rem] flex flex-col justify-center items-center text-center">
-                        <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 shadow-sm border border-slate-100 dark:border-slate-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                    <div className="w-full p-8 sm:p-10 bg-white dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col justify-center items-center text-center">
+                        <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
                         </div>
                         <h3 className="text-[16px] font-extrabold text-slate-800 dark:text-white mb-1 tracking-tight">Crie seus atalhos</h3>
                         <p className="text-[14px] text-slate-500 font-medium max-w-sm">Marque protocolos com a estrela para criar uma biblioteca focada na sua rotina.</p>
@@ -376,7 +376,7 @@ const PacientesPorta: React.FC = () => {
                                 </div>
                                 <div className="text-left w-full pt-1">
                                     <h3 className="text-[15px] sm:text-[16px] font-extrabold text-slate-800 dark:text-white tracking-tight mb-0.5 line-clamp-1">{cat.nome}</h3>
-                                    <p className="text-[12.5px] font-semibold text-slate-500 dark:text-slate-400 leading-snug line-clamp-2">{cat.desc}</p>
+                                    <p className="text-[12.5px] font-semibold text-slate-600 dark:text-slate-400 leading-snug line-clamp-2">{cat.desc}</p>
                                 </div>
                             </Link>
                         ))}

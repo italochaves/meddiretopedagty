@@ -72,8 +72,8 @@ const CategoryPage: React.FC = () => {
 
     return (
         <div className="container mx-auto max-w-6xl">
-            <button onClick={handleGoBack} className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-semibold transition-all duration-200 transform bg-white dark:bg-slate-800 border rounded-lg shadow-subtle text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:-translate-y-px active:translate-y-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            <button onClick={handleGoBack} className="inline-flex items-center gap-2 px-4 py-2 mb-8 text-sm font-bold transition-all duration-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-subtle text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 hover:-translate-y-px active:translate-y-0 active:scale-[0.98]">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                 Voltar
             </button>
             
@@ -83,13 +83,13 @@ const CategoryPage: React.FC = () => {
                 ) : (
                     <div>
                         <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight text-slate-800 dark:text-white leading-tight">{category?.nome}</h1>
-                        <p className="text-[14px] text-slate-500 font-medium mt-1">Conferência e protocolos da especialidade</p>
+                        <p className="text-[14px] text-slate-500 dark:text-slate-400 font-semibold mt-1">Protocolos e condutas desta especialidade</p>
                     </div>
                 )}
 
-                <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1 shadow-sm self-start md:self-auto">
-                    <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all flex items-center justify-center ${viewMode === 'list' ? 'bg-premium-teal text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-400'}`} title="Lista"><ListIcon /></button>
-                    <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all flex items-center justify-center ${viewMode === 'grid' ? 'bg-premium-teal text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-400'}`} title="Grade"><GridIcon /></button>
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-subtle self-start md:self-auto">
+                    <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all flex items-center justify-center ${viewMode === 'list' ? 'bg-premium-teal text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-400 hover:text-slate-700'}`} title="Lista"><ListIcon /></button>
+                    <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all flex items-center justify-center ${viewMode === 'grid' ? 'bg-premium-teal text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 dark:text-slate-400 hover:text-slate-700'}`} title="Grade"><GridIcon /></button>
                 </div>
             </div>
 
@@ -102,13 +102,17 @@ const CategoryPage: React.FC = () => {
                     ))}
                  </div>
             ) : prescriptions.length === 0 ? (
-                <div className="w-full p-10 bg-slate-50/80 dark:bg-slate-900/50 border border-dashed border-slate-300 dark:border-slate-700 rounded-[1.5rem] flex flex-col items-center text-center">
-                     <p className="text-[15px] font-medium text-slate-500 dark:text-slate-400">Nenhuma condição encontrada para esta categoria.</p>
+                <div className="w-full py-20 bg-white dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col items-center text-center">
+                    <div className="w-14 h-14 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                        <svg className="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    </div>
+                    <p className="text-[16px] font-bold text-slate-600 dark:text-slate-400 mb-1">Nenhum protocolo nesta categoria</p>
+                    <p className="text-[13px] font-medium text-slate-400 dark:text-slate-500">Esta especialidade ainda não possui condutas cadastradas.</p>
                 </div>
             ) : (
                 <div className={viewMode === 'list' ? 'flex flex-col gap-3' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}>
                     {prescriptions.map((prescription) => (
-                         <Link key={prescription.id} to={`/prescricao/${prescription.id}`} className={`block transition-all duration-300 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_4px_15px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_30px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1 hover:border-premium-teal/50 dark:hover:border-premium-teal/50 border-[1.5px] border-slate-100 dark:border-slate-800/80 ${viewMode === 'list' ? 'p-5 flex items-center justify-between' : 'p-6 flex flex-col h-full justify-center text-center'}`}>
+                         <Link key={prescription.id} to={`/prescricao/${prescription.id}`} className={`block transition-all duration-200 bg-white dark:bg-slate-900 rounded-2xl shadow-subtle hover:shadow-card hover:-translate-y-0.5 active:scale-[0.99] hover:border-premium-teal/40 dark:hover:border-premium-teal/40 border-[1.5px] border-slate-200 dark:border-slate-800/80 ${viewMode === 'list' ? 'p-5 flex items-center justify-between' : 'p-6 flex flex-col h-full justify-center text-center'}`}>
                             <div className="flex-1 min-w-0 pr-4">
                                 <h2 className="text-[16px] font-extrabold text-slate-800 dark:text-slate-100 tracking-tight leading-snug line-clamp-2">{prescription.condicao}</h2>
                                 {viewMode === 'grid' && prescription.titulo !== prescription.condicao && (<p className="text-[13px] font-medium text-slate-500 mt-2 line-clamp-2">{prescription.titulo}</p>)}
