@@ -82,8 +82,8 @@ const PrintLayout: React.FC = () => {
                                             left: 0,
                                             width: '100%',
                                             height: '100%',
-                                            objectFit: 'fill', // Força preencher o A4
-                                            zIndex: 0, // Fica atrás
+                                            objectFit: 'fill',
+                                            zIndex: 0,
                                             pointerEvents: 'none'
                                         }}
                                     />
@@ -94,7 +94,7 @@ const PrintLayout: React.FC = () => {
                                     className="conteudo-texto"
                                     style={{
                                         position: 'relative',
-                                        zIndex: 10, // Fica na frente da imagem
+                                        zIndex: 10,
                                         width: '100%',
                                         height: '100%',
                                         paddingTop: `${marginTop}px`,
@@ -132,7 +132,7 @@ const PrintLayout: React.FC = () => {
                                                 fontFamily: '"Roboto", Arial, sans-serif',
                                                 fontSize: '14pt',
                                                 lineHeight: '1.3',
-                                                color: '#000', // Força preto
+                                                color: '#000',
                                                 whiteSpace: 'pre-wrap',
                                                 textAlign: 'justify'
                                             }}
@@ -140,22 +140,37 @@ const PrintLayout: React.FC = () => {
                                             dangerouslySetInnerHTML={{ __html: item.texto }}
                                         />
                                     </div>
-
-                                    {/* Data no Rodapé */}
-                                    <div 
-                                        style={{ 
-                                            position: 'absolute',
-                                            bottom: `${dateOffsetBottom}px`,
-                                            left: `${sideMargin}px`,
-                                            fontFamily: '"Roboto", Arial, sans-serif',
-                                            fontSize: '14pt',
-                                            color: '#000',
-                                            padding: '2px 0',
-                                        }}
-                                    >
-                                        {currentDate}
-                                    </div>
                                 </div>
+
+                                {/*
+                                 * CAMADA 3: Data no Rodapé
+                                 * —————————————————————————————————————————————————
+                                 * IMPORTANTE: posicionada diretamente no Inner Scaled Canvas
+                                 * (position: absolute, relativo ao div 210mm × 297mm),
+                                 * NÃO dentro do flex container .conteudo-texto.
+                                 *
+                                 * Motivo: dentro do flex com flexGrow/overflow:hidden, o
+                                 * position:absolute era resolvido em relação ao .conteudo-texto
+                                 * cujo height real pode ser menor que o canvas em chunks
+                                 * intermediários — causando a data aparecer apenas na última
+                                 * folha. Ao elevar para o canvas, cada item sempre tem sua
+                                 * própria data posicionada corretamente.
+                                 */}
+                                <div 
+                                    style={{ 
+                                        position: 'absolute',
+                                        bottom: `${dateOffsetBottom}px`,
+                                        left: `${sideMargin}px`,
+                                        zIndex: 20,
+                                        fontFamily: '"Roboto", Arial, sans-serif',
+                                        fontSize: '14pt',
+                                        color: '#000',
+                                        padding: '2px 0',
+                                    }}
+                                >
+                                    {currentDate}
+                                </div>
+
                             </div>
                         </div>
                     ))}
@@ -184,7 +199,7 @@ const PrintLayout: React.FC = () => {
                         width: 100%;
                         margin: 0;
                         padding: 0;
-                        z-index: 9999; /* Garante que fique por cima de tudo */
+                        z-index: 9999;
                     }
 
                     /* FORÇA CORES EXATAS (IMAGENS E TEXTOS) */

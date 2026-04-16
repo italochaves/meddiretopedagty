@@ -74,6 +74,13 @@ const PrescricaoLivre: React.FC = () => {
     const [addedToQueue, setAddedToQueue] = useState(false);
 
     // =============================================
+    // LIMITES DE IMPRESSÃO
+    // =============================================
+    const CHAR_WARN  = 1050; // aviso visual
+    const CHAR_LIMIT = 1250; // limite seguro da folha
+    const ITEM_LIMIT = 8;    // máximo recomendado de itens
+
+    // =============================================
     // FETCH DO SUPABASE
     // =============================================
     useEffect(() => {
@@ -181,6 +188,16 @@ const PrescricaoLivre: React.FC = () => {
     // Gerar prescrição sempre que mudar
     const prescriptionHtml = generatePrescriptionHtml();
 
+    // Calcula o texto puro (sem HTML) para verificar tamanho da folha
+    const plainTextLength = prescriptionHtml
+        ? prescriptionHtml.replace(/<[^>]*>/gm, ' ').replace(/\s+/g, ' ').trim().length
+        : 0;
+
+    const overflowStatus: 'ok' | 'warning' | 'danger' =
+        plainTextLength > CHAR_LIMIT ? 'danger'
+        : plainTextLength > CHAR_WARN  ? 'warning'
+        : 'ok';
+
     // =============================================
     // AÇÕES
     // =============================================
@@ -196,6 +213,7 @@ const PrescricaoLivre: React.FC = () => {
     }, []);
 
     const handleAddToQueue = () => {
+        if (overflowStatus === 'danger') return; // bloqueado
         if (editorRef.current) {
             addToQueue({
                 id: 'prescricao-livre-' + Date.now(),
@@ -494,6 +512,15 @@ const PrescricaoLivre: React.FC = () => {
                                         </button>
                                     </div>
                                 ))}
+                                {/* Aviso de limite de itens */}
+                                {prescItems.length >= ITEM_LIMIT && (
+                                    <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-lg">
+                                        <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                                        <p className="text-[12px] font-bold text-amber-700 dark:text-amber-400">
+                                            Limite recomendado atingido. Muitos itens podem ultrapassar o espaço do receituário.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Editor rico */}
@@ -517,19 +544,81 @@ const PrescricaoLivre: React.FC = () => {
                                     editorRef={editorRef}
                                     initialHtml={prescriptionHtml}
                                 />
+
+                                {/* Contador de Caracteres / Aviso de Overflow */}
+                                {prescItems.length > 0 && (
+                                    <div className={`px-4 py-2.5 border-t flex items-center justify-between gap-3 transition-colors ${
+                                        overflowStatus === 'danger'
+                                            ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700/50'
+                                            : overflowStatus === 'warning'
+                                            ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/50'
+                                            : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700'
+                                    }`}>
+                                        <div className="flex items-center gap-2">
+                                            {overflowStatus !== 'ok' && (
+                                                <svg className={`w-4 h-4 flex-shrink-0 ${
+                                                    overflowStatus === 'danger' ? 'text-red-500' : 'text-amber-500'
+                                                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                                </svg>
+                                            )}
+                                            <p className={`text-[12px] font-bold ${
+                                                overflowStatus === 'danger'
+                                                    ? 'text-red-600 dark:text-red-400'
+                                                    : overflowStatus === 'warning'
+                                                    ? 'text-amber-700 dark:text-amber-400'
+                                                    : 'text-slate-400 dark:text-slate-500'
+                                            }`}>
+                                                {overflowStatus === 'danger'
+                                                    ? 'Esta prescrição excede o espaço útil do receituário — reduza o conteúdo'
+                                                    : overflowStatus === 'warning'
+                                                    ? 'Texto próximo do limite da folha — revise antes de imprimir'
+                                                    : 'Espaço da folha'
+                                                }
+                                            </p>
+                                        </div>
+                                        <span className={`text-[12px] font-extrabold tabular-nums flex-shrink-0 ${
+                                            overflowStatus === 'danger'
+                                                ? 'text-red-500'
+                                                : overflowStatus === 'warning'
+                                                ? 'text-amber-600'
+                                                : 'text-slate-400'
+                                        }`}>
+                                            {plainTextLength} / {CHAR_LIMIT}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Aviso de bloqueio acima do editor se em estado danger */}
+                            {overflowStatus === 'danger' && (
+                                <div className="mb-4 flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-xl">
+                                    <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                    </svg>
+                                    <div>
+                                        <p className="text-[13px] font-extrabold text-red-700 dark:text-red-400 mb-0.5">Prescrição muito longa para impressão</p>
+                                        <p className="text-[12px] font-medium text-red-600 dark:text-red-500">Reduza a quantidade de itens ou o tamanho das orientações para evitar corte na impressão.</p>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Botões de ação */}
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <button
                                     onClick={handleAddToQueue}
+                                    disabled={overflowStatus === 'danger'}
                                     className={`flex-1 flex items-center justify-center px-4 py-4 font-bold text-white transition-all duration-200 rounded-xl shadow focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                                        addedToQueue
+                                        overflowStatus === 'danger'
+                                            ? 'bg-red-300 dark:bg-red-900/40 cursor-not-allowed opacity-60'
+                                            : addedToQueue
                                             ? 'bg-green-600 focus:ring-green-500'
                                             : 'bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 focus:ring-slate-500'
                                     }`}
                                 >
-                                    {addedToQueue ? (
+                                    {overflowStatus === 'danger' ? (
+                                        <><svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg> Conteúdo excede a folha</>
+                                    ) : addedToQueue ? (
                                         <><svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Prontinho!</>
                                     ) : (
                                         <><svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Mandar p/ Impressão</>

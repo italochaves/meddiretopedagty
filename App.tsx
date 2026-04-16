@@ -42,6 +42,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import PasswordResetPage from './components/PasswordResetPage';
+import ResetPasswordPage from './components/ResetPasswordPage';
 import { PrintProvider, usePrint } from './contexts/PrintContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import PrintBar from './components/PrintBar';
@@ -174,6 +175,7 @@ const AppContent: React.FC = () => {
                     <Routes>
                         <Route path="/login" element={!session ? <AuthPage /> : <Navigate to="/dashboard" />} />
                         <Route path="/password-reset" element={!session ? <PasswordResetPage /> : <Navigate to="/dashboard" />} />
+                        <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="/" element={!session ? <Navigate to="/login" /> : <Navigate to="/dashboard" />} />
                         <Route path="/dashboard" element={<ProtectedRoute session={session}><Dashboard /></ProtectedRoute>} />

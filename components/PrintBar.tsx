@@ -26,7 +26,6 @@ const PrintBar: React.FC = () => {
     const handlePrint = () => {
         if (!patientName.trim()) {
             setNameError(true);
-            // Auto remove flash after 3s
             setTimeout(() => setNameError(false), 3000);
             return;
         }
@@ -39,8 +38,16 @@ const PrintBar: React.FC = () => {
             alert('Aguarde o carregamento do papel de parede do receituário...');
             return;
         }
+
+        // Verifica overflow antes de imprimir
+        if (overflowItems.length > 0) {
+            const nomes = overflowItems.map(i => `• ${i.titulo}`).join('\n');
+            const continuar = window.confirm(
+                `⚠️ Atenção: ${overflowItems.length === 1 ? 'a prescrição abaixo excede' : `as ${overflowItems.length} prescrições abaixo excedem`} o espaço útil do receituário e poderão ser cortadas na impressão:\n\n${nomes}\n\nDeseja imprimir mesmo assim?`
+            );
+            if (!continuar) return;
+        }
         
-        // Small delay to ensure state updates before print dialog
         setTimeout(() => {
             window.print();
             setIsDrawerOpen(false);
@@ -54,10 +61,20 @@ const PrintBar: React.FC = () => {
         }
     };
 
+    const PRINT_CHAR_LIMIT = 1250; // limite seguro de caracteres por folha
+
+    const extractPlainText = (html: string) =>
+        html.replace(/<[^>]*>/gm, ' ').replace(/\s+/g, ' ').trim();
+
     const extractSnippet = (html: string) => {
-        const text = html.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+        const text = extractPlainText(html);
         return text.length > 80 ? text.substring(0, 80) + '...' : text;
     };
+
+    // Itens da fila que excedem o limite seguro de caracteres
+    const overflowItems = printQueue.filter(
+        item => extractPlainText(item.texto).length > PRINT_CHAR_LIMIT
+    );
 
     return (
         <>
@@ -92,6 +109,20 @@ const PrintBar: React.FC = () => {
 
                     {/* Drawer Content (List) */}
                     <div className="p-6 overflow-y-auto custom-scrollbar flex-1 pb-10">
+                        {overflowItems.length > 0 && (
+                            <div className="flex items-start gap-3 p-4 mb-5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-2xl">
+                                <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                                <div>
+                                    <p className="text-[13px] font-extrabold text-amber-800 dark:text-amber-300 mb-0.5">
+                                        {overflowItems.length === 1 ? '1 prescrição' : `${overflowItems.length} prescrições`} pode’m ultrapassar o espaço do receituário
+                                    </p>
+                                    <p className="text-[12px] font-medium text-amber-700 dark:text-amber-400">
+                                        Reduza o conteúdo ou será solicitada confirmação ao imprimir.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {printQueue.length === 0 ? (
                             <div className="text-center text-slate-500 py-10 font-medium">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
@@ -105,8 +136,16 @@ const PrintBar: React.FC = () => {
                                             {index + 1}
                                         </div>
                                         <div className="flex-1 min-w-0 pr-8">
-                                            <h4 className="text-[15px] font-extrabold text-slate-800 dark:text-white tracking-tight line-clamp-1">{item.titulo}</h4>
-                                            <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <h4 className="text-[15px] font-extrabold text-slate-800 dark:text-white tracking-tight line-clamp-1">{item.titulo}</h4>
+                                                {extractPlainText(item.texto).length > PRINT_CHAR_LIMIT && (
+                                                    <span className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-700/50 rounded-full">
+                                                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75M12 15.75h.007v.008H12v-.008z" /></svg>
+                                                        Longo
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">
                                                 {extractSnippet(item.texto)}
                                             </p>
                                         </div>
