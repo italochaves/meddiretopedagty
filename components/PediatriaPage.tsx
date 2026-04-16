@@ -60,6 +60,7 @@ const PediatriaPage: React.FC = () => {
     const [selectedProtocol, setSelectedProtocol] = useState<number | null>(null);
     const [selectedMeds, setSelectedMeds] = useState<number[]>([]);
     const [customPosologies, setCustomPosologies] = useState<Record<number, string>>({});
+    const [searchTerm, setSearchTerm] = useState('');
     
     // Estados de Controlo e Dados Dinâmicos
     const [medications, setMedications] = useState<Medication[]>([]);
@@ -403,11 +404,41 @@ const PediatriaPage: React.FC = () => {
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                                Medicamentos do Banco
-                            </label>
+                            <div className="flex items-center justify-between">
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
+                                    Medicamentos do Banco
+                                </label>
+                            </div>
+                            
+                            {/* Busca */}
+                            <div className="relative">
+                                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Buscar medicamento..."
+                                    className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-premium-teal/20 focus:border-premium-teal transition-all font-medium placeholder-slate-400"
+                                />
+                                {searchTerm && (
+                                    <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                )}
+                            </div>
+
                             <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
-                                {medications.map((med) => {
+                                {medications.filter(med => {
+                                    if (searchTerm.trim().length >= 2) {
+                                        const term = searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                                        const nome = med.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                                        const apresentacao = med.apresentacao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                                        return nome.includes(term) || apresentacao.includes(term);
+                                    }
+                                    return true;
+                                }).map((med) => {
                                     const isSelected = selectedMeds.includes(med.id);
                                     return (
                                         <div key={med.id} className={`flex flex-col rounded-xl border transition-all ${isSelected ? 'bg-premium-teal/5 border-premium-teal shadow-sm' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 hover:border-premium-teal/30'}`}>
