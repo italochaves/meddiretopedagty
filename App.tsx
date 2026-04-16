@@ -1,7 +1,6 @@
-
 import FirstAccessModal from './components/FirstAccessModal';
 import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './services/supabase';
 import { UserProfile } from './types';
@@ -166,7 +165,7 @@ const AppContent: React.FC = () => {
     }
     
     return (
-        <HashRouter>
+        <BrowserRouter>
             <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 print:hidden transition-colors duration-200">
                 {session && <FirstAccessModal />}
                 {session && <SessionMonitor />}
@@ -214,7 +213,7 @@ const AppContent: React.FC = () => {
                 {session && <PrintBar />}
             </div>
             {session && <PrintLayout />}
-        </HashRouter>
+        </BrowserRouter>
     );
 };
 
