@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { usePrint } from '../contexts/PrintContext'; 
+import { usePrint } from '../contexts/PrintContext';
 // IMPORTANTE: Ajuste este caminho para o seu ficheiro de configuração do Supabase
 import { supabase } from "../services/supabase";
 
@@ -53,7 +53,7 @@ const quickWeights = [5, 10, 15, 20, 25, 30];
 
 const PediatriaPage: React.FC = () => {
     const { addToQueue } = usePrint();
-    
+
     // Estados da Interface
     const [weight, setWeight] = useState<string>('');
     const [mode, setMode] = useState<'prontas' | 'livre'>('livre');
@@ -61,14 +61,14 @@ const PediatriaPage: React.FC = () => {
     const [selectedMeds, setSelectedMeds] = useState<number[]>([]);
     const [customPosologies, setCustomPosologies] = useState<Record<number, string>>({});
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     // Estados de Controlo e Dados Dinâmicos
     const [medications, setMedications] = useState<Medication[]>([]);
     const [protocols, setProtocols] = useState<Protocol[]>([]);
     const [isFetchingDB, setIsFetchingDB] = useState(true);
     const [generatedPrescription, setGeneratedPrescription] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    
+
     const editorRef = useRef<HTMLDivElement>(null);
     const [copySuccess, setCopySuccess] = useState('');
     const [addedToQueue, setAddedToQueue] = useState(false);
@@ -81,7 +81,7 @@ const PediatriaPage: React.FC = () => {
         async function fetchSupabaseData() {
             try {
                 setIsFetchingDB(true);
-                
+
                 // 1. Vai buscar os medicamentos
                 const { data: medsData, error: medsError } = await supabase
                     .from('pediatria_medicamentos')
@@ -107,7 +107,7 @@ const PediatriaPage: React.FC = () => {
                 setIsFetchingDB(false);
             }
         }
-        
+
         fetchSupabaseData();
     }, []);
 
@@ -136,7 +136,7 @@ const PediatriaPage: React.FC = () => {
             doseCalculada = med.dose_maxima;
             atingiuMaximo = true;
         }
-        
+
         let doseFormatada = '';
         if (med.unidade.toLowerCase() === 'gotas') {
             doseFormatada = Math.round(doseCalculada).toString();
@@ -161,30 +161,30 @@ const PediatriaPage: React.FC = () => {
 
         let html = '';
         let counter = 1;
-        const caracteresMaximosLinha = 68; 
+        const caracteresMaximosLinha = 68;
 
         Object.keys(grouped).forEach(via => {
             html += `<div style="text-align: center; margin-top: 10px; margin-bottom: 10px; font-weight: bold;">${via.toUpperCase()}</div>`;
-            
+
             grouped[via].forEach(med => {
                 const resultadoDose = calculateDose(weightVal, med);
-                
+
                 const inicioLinha = `${counter}- ${med.nome.toUpperCase()} ${med.apresentacao.toUpperCase()}`;
                 const fimLinha = med.quantidade.toUpperCase();
-                
+
                 const espacoOcupado = inicioLinha.length + fimLinha.length;
-                const quantidadeTracinhos = espacoOcupado < caracteresMaximosLinha ? caracteresMaximosLinha - espacoOcupado : 4; 
+                const quantidadeTracinhos = espacoOcupado < caracteresMaximosLinha ? caracteresMaximosLinha - espacoOcupado : 4;
                 const tracinhos = '-'.repeat(quantidadeTracinhos);
-                
+
                 html += `<div><strong>${inicioLinha}</strong> <span style="color: #64748b; font-weight: normal;">${tracinhos}</span> <strong>${fimLinha}</strong></div>`;
-                
+
                 const textoPosologia = customPoso[med.id] !== undefined ? customPoso[med.id] : med.posologia_padrao;
                 let instrucao = `Dar ${resultadoDose.valor} ${med.unidade}, ${textoPosologia}.`;
-                
+
                 if (resultadoDose.atingiuMaximo) {
                     instrucao += ` <span style="font-size: 1.1em;" title="Dose ajustada para o limite máximo" aria-label="Dose Máxima">🔒</span>`;
                 }
-                
+
                 html += `<div style="margin-bottom: 18px;">${instrucao}</div>`;
                 counter++;
             });
@@ -229,7 +229,7 @@ const PediatriaPage: React.FC = () => {
             if (protocoloSelecionado) {
                 selectedMedsData = medications.filter(m => protocoloSelecionado.ids_medicamentos.includes(m.id));
                 if (protocoloSelecionado.orientacoes_gerais) {
-                    orientacoesFinais = orientacoes 
+                    orientacoesFinais = orientacoes
                         ? `${protocoloSelecionado.orientacoes_gerais}\n\n${orientacoes}`
                         : protocoloSelecionado.orientacoes_gerais;
                 }
@@ -267,7 +267,7 @@ const PediatriaPage: React.FC = () => {
     const handleAddToQueue = () => {
         if (editorRef.current) {
             addToQueue({
-                id: 'pediatria-' + Date.now(), 
+                id: 'pediatria-' + Date.now(),
                 titulo: `Prescrição Pediátrica (${weight}kg)`,
                 texto: editorRef.current.innerHTML,
                 tipo: 'prescricao'
@@ -325,10 +325,10 @@ const PediatriaPage: React.FC = () => {
 
             {/* Layout Lado a Lado (Em Desktop) */}
             <div className="flex flex-col lg:flex-row gap-8 items-start">
-                
+
                 {/* 🔴 COLUNA ESQUERDA: Controles e Inputs */}
                 <div className="w-full lg:w-[45%] bg-white dark:bg-slate-800 rounded-2xl shadow-card border border-slate-100 dark:border-slate-700 p-6 md:p-8 space-y-8 lg:sticky lg:top-24">
-                    
+
                     {/* Input de Peso + Quick Entry */}
                     <div className="space-y-4">
                         <label htmlFor="weight" className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
@@ -344,9 +344,9 @@ const PediatriaPage: React.FC = () => {
                                 onChange={(e) => {
                                     setWeight(e.target.value);
                                     if (parseFloat(e.target.value) <= 0) {
-                                      setError("Por favor, insira um peso válido maior que zero.");
+                                        setError("Por favor, insira um peso válido maior que zero.");
                                     } else {
-                                      setError(null);
+                                        setError(null);
                                     }
                                 }}
                                 className="w-full text-4xl font-black text-premium-teal bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-600 rounded-xl p-4 focus:outline-none focus:border-premium-teal focus:ring-4 focus:ring-premium-teal/10 transition-all placeholder-slate-300 dark:placeholder-slate-700"
@@ -354,7 +354,7 @@ const PediatriaPage: React.FC = () => {
                             <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xl">kg</span>
                         </div>
                         {error && <p className="text-sm font-bold text-red-500 mt-1">{error}</p>}
-                        
+
                         {/* Quick Weight Pills */}
                         <div className="flex flex-wrap gap-2 pt-2">
                             {quickWeights.map(w => (
@@ -409,7 +409,7 @@ const PediatriaPage: React.FC = () => {
                                     Medicamentos do Banco
                                 </label>
                             </div>
-                            
+
                             {/* Busca */}
                             <div className="relative">
                                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -442,7 +442,7 @@ const PediatriaPage: React.FC = () => {
                                     const isSelected = selectedMeds.includes(med.id);
                                     return (
                                         <div key={med.id} className={`flex flex-col rounded-xl border transition-all ${isSelected ? 'bg-premium-teal/5 border-premium-teal shadow-sm' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 hover:border-premium-teal/30'}`}>
-                                            <div 
+                                            <div
                                                 onClick={() => toggleMed(med.id)}
                                                 className="flex items-center justify-between p-4 cursor-pointer"
                                             >
@@ -458,8 +458,8 @@ const PediatriaPage: React.FC = () => {
                                             {isSelected && (
                                                 <div className="px-4 pb-4 border-t border-slate-200 dark:border-slate-700 pt-3 mt-1 animate-fade-in">
                                                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">✏️ Ajustar Posologia Padrão:</label>
-                                                    <input 
-                                                        type="text" 
+                                                    <input
+                                                        type="text"
                                                         value={customPosologies[med.id] !== undefined ? customPosologies[med.id] : med.posologia_padrao}
                                                         onChange={(e) => handleCustomPosology(med.id, e.target.value)}
                                                         className="w-full mt-2 text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-premium-teal transition-all"
@@ -500,22 +500,22 @@ const PediatriaPage: React.FC = () => {
                                     Rascunho calculado para <strong className="text-premium-teal">{weight}kg</strong>
                                 </p>
                             </div>
-                            
+
                             <div className="mb-6 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shadow-sm relative">
                                 <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-2">
                                     <div className="flex items-center gap-1 p-2">
-                                        <ToolbarButton command="bold" title="Negrito" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>} />
-                                        <ToolbarButton command="underline" title="Sublinhado" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg>} />
+                                        <ToolbarButton command="bold" title="Negrito" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" /><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" /></svg>} />
+                                        <ToolbarButton command="underline" title="Sublinhado" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3" /><line x1="4" y1="21" x2="20" y2="21" /></svg>} />
                                         <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                                        <ToolbarButton command="justifyLeft" title="Esquerda" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>} />
-                                        <ToolbarButton command="justifyCenter" title="Centro" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg>} />
+                                        <ToolbarButton command="justifyLeft" title="Esquerda" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><line x1="17" y1="10" x2="3" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="17" y1="18" x2="3" y2="18" /></svg>} />
+                                        <ToolbarButton command="justifyCenter" title="Centro" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><line x1="18" y1="10" x2="6" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="18" y1="18" x2="6" y2="18" /></svg>} />
                                     </div>
                                     <span className="text-xs text-slate-400 font-bold pr-4 uppercase tracking-widest flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div> Live</span>
                                 </div>
-                                
+
                                 <RichTextEditor key={weight + mode + selectedProtocol + selectedMeds.join('-')} editorRef={editorRef} initialHtml={generatedPrescription} />
                             </div>
-                            
+
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <button onClick={handleAddToQueue} className={`flex-1 flex items-center justify-center px-4 py-4 font-bold text-white transition-all duration-200 rounded-xl shadow focus:outline-none focus:ring-2 focus:ring-offset-2 ${addedToQueue ? 'bg-green-600 focus:ring-green-500' : 'bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 focus:ring-slate-500'}`}>
                                     {addedToQueue ? (
@@ -540,7 +540,7 @@ const PediatriaPage: React.FC = () => {
                             </div>
                             <h3 className="text-2xl font-bold text-slate-500 dark:text-slate-400 mb-2">Editor Ocioso</h3>
                             <p className="text-slate-400 dark:text-slate-500 max-w-sm leading-relaxed">
-                                Para visualizar o rascunho mágico: <br/> <strong>1. Insira o Peso</strong> e <strong>2. Selecione os medicamentos.</strong>
+                                Para visualizar o rascunho mágico: <br /> <strong>1. Insira o Peso</strong> e <strong>2. Selecione os medicamentos.</strong>
                             </p>
                         </div>
                     )}
