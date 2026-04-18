@@ -91,10 +91,8 @@ const AuthPage: React.FC = () => {
                     {/* Cabeçalho */}
                     <div className="text-center lg:text-left mt-auto pt-8">
                         <div className="flex justify-center lg:justify-start items-center gap-3 mb-6 group cursor-default">
-                             {/* Espaço reservado para a logo.png - Insira o link do GitHub abaixo */}
                              <div className="flex items-center justify-center">
-                                 {/* <img src="/logo.png" alt="Logo" className="h-9 w-auto" /> */}
-                                 <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-[10px] text-slate-400 font-bold">LOGO</div>
+                                 <img src="/logo.png" alt="MedDireto Logo" className="h-9 w-auto" />
                              </div>
                              <span className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                                 MedDireto

@@ -36,10 +36,8 @@ const PasswordResetPage: React.FC = () => {
                 
                 <div className="text-center space-y-4 relative z-10">
                     <div className="flex justify-center mb-6">
-                        {/* Espaço reservado para a logo.png - Insira o link do GitHub abaixo */}
                         <div className="flex items-center justify-center">
-                            {/* <img src="/logo.png" alt="Logo" className="h-10 w-auto" /> */}
-                            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-[10px] text-slate-400 font-bold">LOGO</div>
+                            <img src="/logo.png" alt="MedDireto Logo" className="h-10 w-auto" />
                         </div>
                     </div>
                     <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Redefinir Senha</h1>
