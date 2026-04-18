@@ -1,4 +1,5 @@
 import FirstAccessModal from './components/FirstAccessModal';
+import OnboardingModal from './components/OnboardingModal';
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
@@ -168,6 +169,7 @@ const AppContent: React.FC = () => {
         <BrowserRouter>
             <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100 print:hidden transition-colors duration-200">
                 {session && <FirstAccessModal />}
+                {session && <OnboardingModal />}
                 {session && <SessionMonitor />}
                 {session && <Header profile={profile} />}
                 <main className="flex-grow p-6 sm:p-8 md:p-10">

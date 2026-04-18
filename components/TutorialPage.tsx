@@ -9,6 +9,7 @@ interface HelpTopic {
     steps: string[];
     observation?: string;
     videoTitle: string;
+    videoId: string;
 }
 
 const TutorialPage: React.FC = () => {
@@ -17,151 +18,111 @@ const TutorialPage: React.FC = () => {
 
     const topics: HelpTopic[] = [
         {
-            id: 'search',
+            id: 'boas-vindas',
+            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
+            question: "Boas-vindas e painel inicial",
+            summary: "Como navegar no Dashboard e explorar o principal painel de decisões clínicas.",
+            steps: [
+                "O Dashboard é a sua central de controle. Tudo o que você precisa está a no máximo dois cliques.",
+                "Utilize a barra de pesquisa rápida no topo para encontrar qualquer doença ou medicamento instantaneamente.",
+                "Acesse seções como Ambulatório e Emergência pelas opções laterais ou botões de atalho principais.",
+                "Suas ferramentas favoritas (receitas próprias, calculadoras) ficam fixadas para rápido uso."
+            ],
+            observation: "Sempre que se perder na plataforma, clique na Logo da MedDireto para retornar ao Dashboard.",
+            videoTitle: "Boas-Vindas e Painel Inicial",
+            videoId: "MG8BnLZlEa4"
+        },
+        {
+            id: 'busca',
             icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
-            question: "Como buscar protocolos e prescrições",
-            summary: "Localize rapidamente condutas clínicas por diagnóstico, sintoma ou nome do medicamento.",
+            question: "Como usar a busca inteligente",
+            summary: "Localize prescrições, patologias e medicamentos em milissegundos.",
             steps: [
-                "Acesse o Dashboard principal.",
-                "Utilize a barra de busca central clicando em 'O que vamos prescrever hoje?'.",
-                "Digite o diagnóstico (ex: 'Pneumonia') ou o medicamento (ex: 'Amoxicilina').",
-                "Os resultados aparecerão instantaneamente abaixo da busca.",
-                "Clique no item desejado para abrir a prescrição completa."
+                "Abra o campo central de pesquisa escrito 'O que vamos prescrever hoje?'.",
+                "Digite palavras-chave, nomes comerciais ou genéricos de medicamentos.",
+                "A ferramenta procurará resultados exatos também para nomes de doenças.",
+                "Clique em cima do resultado sugerido e a prescrição se montará automaticamente na sua tela."
             ],
-            observation: "Você também pode navegar pelas categorias clínicas (Ambulatório, Emergência, etc.) para ver listas organizadas por área.",
-            videoTitle: "Tutorial: Buscas Rápidas e Inteligentes"
+            observation: "Você pode buscar por termo parcial; a busca tolera alguns pequenos erros de digitação.",
+            videoTitle: "Como realizar buscas eficientes",
+            videoId: "nVbhlTi2UjM"
         },
         {
-            id: 'custom-recipes',
-            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
-            question: "Como criar receitas próprias",
-            summary: "Crie e gerencie sua própria base de prescrições personalizadas.",
+            id: 'ambulatorio',
+            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
+            question: "Como usar o Ambulatório",
+            summary: "Prescrições validadas e organizadas por especialidade clínica para a rotina diária.",
             steps: [
-                "No menu lateral ou Dashboard, clique em 'Minhas Receitas'.",
-                "Clique no botão 'Nova Receita'.",
-                "Preencha o título (nome da conduta) e a condição clínica.",
-                "Escreva o texto da prescrição no editor rico.",
-                "Salve a receita para que ela apareça na sua lista pessoal e nas buscas."
+                "Clique na seção 'Ambulatório' no menu esquerdo ou pelo botão no painel principal.",
+                "Selecione uma especialidade (Ex: Cardiologia, Pneumologia, Dermatologia).",
+                "Dentre as doenças daquela classe, escolha o protocolo desejado.",
+                "Revise as dosagens exibidas que seguem a literatura médica vigente.",
+                "Ajuste posologias se desejar antes de enviar para impressão."
             ],
-            observation: "Suas receitas são individuais e ficam salvas com segurança na sua conta MedDireto.",
-            videoTitle: "Tutorial: Gestão de Receitas Personalizadas"
+            observation: "Cada prescrição possui orientações extras e lembretes para o preenchimento de atestados associados.",
+            videoTitle: "Tutorial Rotina Ambulatorial",
+            videoId: "dNBdTtF_3H0"
         },
         {
-            id: 'print-tool',
+            id: 'pediatria',
+            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            question: "Como usar a Pediatria",
+            summary: "Cálculos automáticos de peso, idade e dosagens seguras para atendimento infantil.",
+            steps: [
+                "Ao entrar no ambiente de Pediatria, você encontra a Calculadora de Dose ativa à direita.",
+                "Insira Peso (Kg) e Idade (anos ou meses) do paciente.",
+                "Selecione a patologia no painel esquerdo ou utilize a pesquisa filtrada por pediatria.",
+                "A dosagem das medicações prescritas em ml serão calculadas perfeitamente para aquele peso em tempo real."
+            ],
+            observation: "Nunca deixe de fornecer as casas decimais se o peso do infante não for inteiro redondo (ex: 7.5).",
+            videoTitle: "Utilizando Módulo de Pediatria",
+            videoId: "8GbMK89VSlQ"
+        },
+        {
+            id: 'documentos',
+            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+            question: "Como gerar Documentos Médicos",
+            summary: "Atestados, Encaminhamentos, Exames e Relatórios padronizados.",
+            steps: [
+                "No menu esquerdo, acesse a raiz de 'Documentos'.",
+                "Escolha o tipo de documento que precisa expedir (Ex: Atestado Médico).",
+                "Preencha as informações do formulário inteligente central.",
+                "Em caso de solicitações de Exames, utilize blocos visuais e pesquisa via botão interativo.",
+                "Ao finalizar, envie o documento para a sua Fila de Impressão."
+            ],
+            observation: "Você pode adicionar a CID-10 rapidamente dentro dos atestados utilizando o seletor.",
+            videoTitle: "Geração de Atestados e Documentos",
+            videoId: "j7ibyNWdb_U"
+        },
+        {
+            id: 'impressao',
             icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>,
-            question: "Como usar a ferramenta de impressão",
-            summary: "Agrupe várias prescrições em uma única folha e configure a fila de saída.",
+            question: "Como usar a Fila de Impressão",
+            summary: "Configure seu papel timbrado digital e aglomere diversas vias.",
             steps: [
-                "Ao abrir qualquer prescrição, clique em 'Adicionar à Impressão'.",
-                "A barra inferior (PrintBar) mostrará quantos itens estão na fila.",
-                "Você pode adicionar múltiplos itens (ex: Receita + Atestado + Exames).",
-                "Clique no botão 'IMPRIMIR' na barra inferior para gerar o PDF final."
+                "À medida que envia prescrições ou documentos, eles se acumulam na 'PrintBar' (barra inferior do site).",
+                "Clique nela e pressione 'IMPRIMIR' para abrir o Gerador Final de PDF.",
+                "Para configurar as margens ou inserir Arte Digital de Recetário, vá até o menu 'Configurações'.",
+                "O layout de impressão respeitará suas margens pré-estabelecidas e ajustará o texto para caber perfeitamente no controle de quebra de páginas."
             ],
-            observation: "A MedDireto organiza automaticamente os documentos para otimizar o espaço no papel.",
-            videoTitle: "Tutorial: Fluxo de Impressão e Fila de Documentos"
+            observation: "Verifique se a configuração do navegador está ajustada para imprimir colorida caso utilize logo / background digital.",
+            videoTitle: "Configurando Recetário e Fila de Impressão",
+            videoId: "70H1SB4n3qg"
         },
         {
-            id: 'print-layout',
-            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>,
-            question: "Como configurar o layout de impressão",
-            summary: "Ajuste margens e use papéis timbrados personalizados.",
+            id: 'emergencia',
+            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+            question: "Como usar a Emergência",
+            summary: "Condutas essenciais e sensíveis ao tempo com apoio visual rápido.",
             steps: [
-                "Clique em 'Configurações' no menu superior ou lateral.",
-                "Role até a seção 'Impressão'.",
-                "Aqui você pode definir margens superiores para papel timbrado físico.",
-                "Ou carregar uma imagem de papel timbrado digital para ser usada de fundo.",
-                "Ative ou desative a opção 'Usar papel timbrado digital' conforme sua necessidade."
+                "Na seção Emergência, o foco é apoio decisório visual em detrimento da prescrição longa impressa.",
+                "Acesse os Cards vitais como Intubação, Sedação ou Anafilaxia.",
+                "Cada sessão exibe infográficos, doses tabeladas por gravidade ou passo-a-passo e interações medicamentosas importantes.",
+                "Calculadoras de peso guiadas também existem ali dentro para não perder tempo com dosimetria crítica."
             ],
-            observation: "Recomendamos margens de 40mm a 60mm para papéis timbrados que possuam cabeçalho grande.",
-            videoTitle: "Tutorial: Configuração de Margens e Papel Timbrado"
-        },
-        {
-            id: 'calculators',
-            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>,
-            question: "Como usar calculadoras médicas",
-            summary: "Acesse scores e calculadoras automáticas para apoio à decisão clínica.",
-            steps: [
-                "Acesse o menu 'Calculadoras'.",
-                "Escolha a categoria (Nefrologia, Cardiologia, etc) na barra lateral.",
-                "Selecione a calculadora desejada.",
-                "Insira os dados solicitados nos campos de entrada.",
-                "O resultado aparecerá automaticamente no painel de destaque."
-            ],
-            observation: "Os resultados incluem interpretações clínicas baseadas em evidências.",
-            videoTitle: "Tutorial: Calculadoras e Scores Médicos"
-        },
-        {
-            id: 'favorites',
-            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.382-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>,
-            question: "Como favoritar conteúdos para acesso rápido",
-            summary: "Mantenha seus protocolos mais usados sempre à mão.",
-            steps: [
-                "Abra a página de qualquer protocolo ou prescrição.",
-                "Clique no botão de estrela 'Favoritar' localizado ao lado do título.",
-                "O item agora aparecerá na seção 'Favoritos' do seu Dashboard.",
-                "Para remover, basta clicar novamente na estrela dentro da prescrição."
-            ],
-            observation: "Seu Dashboard exibe os últimos favoritos salvos para agilizar o início do atendimento.",
-            videoTitle: "Tutorial: Organizandao seu Dashboard com Favoritos"
-        },
-        {
-            id: 'iphone',
-            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>,
-            question: "Como adicionar a MedDireto no iPhone (iOS)",
-            summary: "Tenha a experiência de um aplicativo nativo no seu iPhone.",
-            steps: [
-                "Abra o navegador Safari.",
-                "Acesse meddireto.com e faça seu login.",
-                "Toque no ícone de 'Compartilhar' (o quadrado com uma seta para cima na barra inferior).",
-                "Role para baixo e selecione 'Adicionar à Tela de Início'.",
-                "Confirme o nome do atalho e toque em 'Adicionar'."
-            ],
-            observation: "O ícone da MedDireto aparecerá na sua tela inicial como um aplicativo comum.",
-            videoTitle: "Tutorial: Instalando MedDireto no iOS"
-        },
-        {
-            id: 'android',
-            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>,
-            question: "Como adicionar a MedDireto no Android",
-            summary: "Instale a MedDireto no seu Android para acesso instantâneo.",
-            steps: [
-                "Abra o Google Chrome no seu dispositivo.",
-                "Acesse meddireto.com e entre na sua conta.",
-                "Toque nos três pontos no canto superior direito.",
-                "Selecione 'Adicionar à tela inicial' ou 'Instalar aplicativo'.",
-                "Siga as instruções na tela para confirmar a instalação."
-            ],
-            observation: "A MedDireto passará a ocupar menos espaço e carregar mais rápido do que a versão do navegador.",
-            videoTitle: "Tutorial: Instalando MedDireto no Android"
-        },
-        {
-            id: 'dashboard',
-            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
-            question: "Como acessar o dashboard",
-            summary: "Sua central de operações e resumo do plantão.",
-            steps: [
-                "O Dashboard é a página carregada logo após o login.",
-                "Lá você encontra a busca rápida no topo (Seção Hero).",
-                "Abaixo, os cards de 'Ações Rápidas' levam para Ambulatório, Emergência, etc.",
-                "Você também tem acesso imediato aos seus Favoritos e Recentemente Acessados.",
-                "No lado direito (desktop), você tem o bloco de Anotações Pessoais."
-            ],
-            observation: "O Dashboard foi projetado para ser o ponto mais rápido de acesso a qualquer função da plataforma.",
-            videoTitle: "Tutorial: Visão Geral do Dashboard"
-        },
-        {
-            id: 'navigation',
-            icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" /></svg>,
-            question: "Como resolver dúvidas comuns de navegação",
-            summary: "Dicas de atalhos e caminhos rápidos na plataforma.",
-            steps: [
-                "Use a logo da MedDireto no topo para voltar sempre ao Dashboard.",
-                "Em qualquer página de protocolo, você verá o caminho (breadcrumbs) no topo para voltar um nível.",
-                "O botão 'Voltar' posicionado acima dos títulos também ajuda na navegação.",
-                "Mantenha uma única aba aberta para que sua fila de impressão seja consistente."
-            ],
-            observation: "Se a página parecer travada, utilize o comando de atualização (F5) no seu navegador.",
-            videoTitle: "Tutorial: Dicas de Navegação e Atalhos"
+            observation: "Ideal para usar as abas do celular quando estiver próximo ao paciente emergencial.",
+            videoTitle: "Módulo de Urgência e Emergência",
+            videoId: "QaCzYUcw4dE"
         }
     ];
 
@@ -278,21 +239,33 @@ const TutorialPage: React.FC = () => {
                                             )}
                                         </div>
 
-                                        {/* Lado Direito: Vídeo Placeholder */}
-                                        <div>
-                                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Vídeo Tutorial</h4>
-                                            <div className="aspect-video bg-slate-50 dark:bg-slate-950 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col items-center justify-center group/video cursor-pointer hover:border-premium-teal/50 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all shadow-inner">
-                                                <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-full shadow-lg flex items-center justify-center mb-4 transition-transform group-hover/video:scale-110">
-                                                    <svg className="w-7 h-7 text-premium-teal ml-1" fill="currentColor" viewBox="0 0 24 24">
-                                                        <path d="M8 5v14l11-7z" />
-                                                    </svg>
-                                                </div>
-                                                <p className="text-sm font-bold text-slate-400 group-hover/video:text-premium-teal transition-colors">
-                                                    {topic.videoTitle}
-                                                </p>
-                                                <p className="text-[11px] text-slate-300 dark:text-slate-600 mt-1 uppercase font-black tracking-widest">
-                                                    Espaço reservado para vídeo
-                                                </p>
+                                        {/* Lado Direito: Vídeo Completo (YouTube Iframe) */}
+                                        <div className="flex flex-col">
+                                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Assista o Passo a Passo</h4>
+                                            
+                                            {/* Container para manter aspecto ratio 16:9 */}
+                                            <div className="relative w-full aspect-video rounded-3xl overflow-hidden bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-xl group/video">
+                                                
+                                                {/* Aviso explicativo para inserção de vídeo (Caso videoId seja "COLE_ID_DO_YOUTUBE_AQUI") */}
+                                                {(topic.videoId.includes('COLE_ID_')) ? (
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-900/90 text-center p-6 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.98]">
+                                                        <svg className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                        </svg>
+                                                        <p className="text-slate-500 font-bold max-w-sm">
+                                                            Abra o `TutorialPage.tsx` e cole o código do vídeo não listado no objeto `{topic.id}`.
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <iframe 
+                                                        className="absolute inset-0 w-full h-full"
+                                                        src={`https://www.youtube.com/embed/${topic.videoId}?rel=0`} 
+                                                        title={topic.videoTitle}
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                                        allowFullScreen
+                                                    ></iframe>
+                                                )}
+                                                
                                             </div>
                                         </div>
                                     </div>
