@@ -90,31 +90,28 @@ const steps: OnboardingStep[] = [
     }
 ];
 
-const OnboardingModal: React.FC = () => {
+interface OnboardingModalProps {
+    userId: string;
+}
+
+const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [dontShowAgain, setDontShowAgain] = useState(true);
-    const [userId, setUserId] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const checkViewingStatus = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            
-            setUserId(user.id);
-            
-            const hasViewed = localStorage.getItem(`meddireto_onboarding_hide_${user.id}`);
-            if (!hasViewed) {
-                setTimeout(() => setIsOpen(true), 800);
-            }
-        };
-
-        checkViewingStatus();
-    }, []);
+        // Check localStorage immediately on mount
+        const hasViewed = localStorage.getItem(`meddireto_onboarding_hide_${userId}`);
+        
+        if (!hasViewed) {
+            const timer = setTimeout(() => setIsOpen(true), 1200); // 1.2s delay for a smoother entrance
+            return () => clearTimeout(timer);
+        }
+    }, [userId]);
 
     const closeOnboarding = () => {
-        if (userId && dontShowAgain) {
+        if (dontShowAgain) {
             localStorage.setItem(`meddireto_onboarding_hide_${userId}`, 'true');
         }
         setIsOpen(false);
