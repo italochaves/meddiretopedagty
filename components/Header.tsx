@@ -102,6 +102,11 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
 
                             {/* LOGO (Clean & Professional) */}
                             <Link to="/dashboard" className="flex items-center gap-3 hover:opacity-90 transition-opacity group mr-4 xl:mr-8">
+                                {/* Espaço reservado para a logo.png - Insira o link do GitHub abaixo */}
+                                <div className="flex items-center justify-center">
+                                    {/* <img src="/logo.png" alt="Logo" className="h-8 w-auto" /> */}
+                                    <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-[8px] text-slate-400 font-bold">LOGO</div>
+                                </div>
                                 <span className="text-[22px] font-extrabold tracking-tight text-slate-900 dark:text-white">
                                     MedDireto
                                 </span>
@@ -183,6 +188,11 @@ const Header: React.FC<HeaderProps> = ({ profile }) => {
                     {/* Sidebar Header */}
                     <div className="flex items-center justify-between px-6 h-[72px] border-b border-slate-100 dark:border-slate-800">
                         <Link to="/dashboard" onClick={closeSidebar} className="flex items-center gap-3">
+                            {/* Espaço reservado para a logo.png */}
+                            <div className="flex items-center justify-center">
+                                {/* <img src="/logo.png" alt="Logo" className="h-7 w-auto" /> */}
+                                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-[7px] text-slate-400 font-bold">LOGO</div>
+                            </div>
                             <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
                                 MedDireto
                             </span>
