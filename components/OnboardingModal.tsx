@@ -101,18 +101,26 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId }) => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Check localStorage immediately on mount
-        const hasViewed = localStorage.getItem(`meddireto_onboarding_hide_${userId}`);
+        if (!userId) return;
+
+        // Verificação dupla reforçada de localStorage
+        const hasViewedUser = localStorage.getItem(`meddireto_off_${userId}`);
+        const hasViewedGlobal = localStorage.getItem(`meddireto_off_global`);
         
-        if (!hasViewed) {
-            const timer = setTimeout(() => setIsOpen(true), 1200); // 1.2s delay for a smoother entrance
-            return () => clearTimeout(timer);
+        if (hasViewedUser === 'true' || hasViewedGlobal === 'true') {
+            setIsOpen(false);
+            return;
         }
+
+        const timer = setTimeout(() => setIsOpen(true), 600); // Tempo reduzido para aparecer
+        return () => clearTimeout(timer);
     }, [userId]);
 
     const closeOnboarding = () => {
         if (dontShowAgain) {
-            localStorage.setItem(`meddireto_onboarding_hide_${userId}`, 'true');
+            // Salva redundância dupla para usuários e guests anônimos
+            localStorage.setItem(`meddireto_off_${userId}`, 'true');
+            localStorage.setItem(`meddireto_off_global`, 'true');
         }
         setIsOpen(false);
     };
