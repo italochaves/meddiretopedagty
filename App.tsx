@@ -172,7 +172,7 @@ const AppContent: React.FC = () => {
                 {session && <OnboardingModal userId={session.user.id} />}
                 {session && <SessionMonitor />}
                 {session && <Header profile={profile} />}
-                <main className="flex-grow p-6 sm:p-8 md:p-10">
+                <main className="flex-grow p-4 sm:p-5 md:p-6">
                     <Routes>
                         <Route path="/login" element={!session ? <AuthPage /> : <Navigate to="/dashboard" />} />
                         <Route path="/password-reset" element={!session ? <PasswordResetPage /> : <Navigate to="/dashboard" />} />

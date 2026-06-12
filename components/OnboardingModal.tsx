@@ -106,7 +106,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId }) => {
         // Verificação dupla reforçada de localStorage
         const hasViewedUser = localStorage.getItem(`meddireto_off_${userId}`);
         const hasViewedGlobal = localStorage.getItem(`meddireto_off_global`);
-        
+
         if (hasViewedUser === 'true' || hasViewedGlobal === 'true') {
             setIsOpen(false);
             return;
@@ -151,37 +151,37 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId }) => {
     return (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm transition-opacity">
             <div className="w-full max-w-[1000px] h-full sm:h-auto max-h-[95vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-y-auto sm:overflow-hidden flex flex-col md:flex-row animate-fade-in border border-slate-200 dark:border-slate-800 relative">
-                
+
                 {/* Lado Esquerdo: Vídeo YouTube com Áudio */}
                 <div className="w-full md:w-[45%] bg-slate-950 relative h-[300px] md:h-[600px] flex items-center justify-center overflow-hidden border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800">
-                    
+
                     {/* Embedded YouTube preview com áudio e controles. */}
                     <div className="absolute inset-0 scale-125 transform-origin-center">
-                        <iframe 
+                        <iframe
                             className="w-full h-full object-cover"
                             src={`https://www.youtube.com/embed/${step.videoId}?autoplay=1&mute=0&controls=1&loop=1&playlist=${step.videoId}&modestbranding=1&showinfo=0&rel=0`}
                             title={step.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         />
                     </div>
-                    
+
                     {/* Overlay protetor extra escuro para dar contraste */}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent pointer-events-none"></div>
-                    
+
                     {/* Selo Visual Inferior */}
                     <div className="absolute bottom-6 left-6 right-6 text-left z-10 pointer-events-none">
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 mb-2">
-                             <div className="w-2 h-2 rounded-full bg-premium-teal animate-pulse"></div>
-                             <span className="text-xs font-bold text-white uppercase tracking-wider">Passo {currentStep + 1} de {steps.length}</span>
+                            <div className="w-2 h-2 rounded-full bg-premium-teal animate-pulse"></div>
+                            <span className="text-xs font-bold text-white uppercase tracking-wider">Passo {currentStep + 1} de {steps.length}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Lado Direito: Conteúdo e Interação */}
                 <div className="w-full md:w-[55%] flex flex-col relative bg-white dark:bg-slate-900 min-h-[350px]">
-                    
+
                     {/* Fechar botão superior (X) */}
-                    <button 
+                    <button
                         onClick={closeOnboarding}
                         className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors z-10"
                         aria-label="Fechar"
@@ -193,11 +193,11 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId }) => {
 
                     {/* Corpo Principal */}
                     <div className="px-6 sm:px-12 pt-10 sm:pt-14 pb-6 flex-grow flex flex-col justify-center">
-                        
+
                         <h2 className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white mb-3 sm:mb-4 tracking-tight leading-tight">
                             {step.title}
                         </h2>
-                        
+
                         <p className="text-slate-600 dark:text-slate-300 font-medium text-base sm:text-lg mb-6 sm:mb-8 leading-relaxed">
                             {step.description}
                         </p>
@@ -214,31 +214,31 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId }) => {
                                 </li>
                             ))}
                         </ul>
-                        
+
                     </div>
 
                     {/* Footer Actions */}
                     <div className="px-6 sm:px-12 py-5 sm:py-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                        
+
                         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-5 sm:mb-6">
-                            <button 
+                            <button
                                 onClick={navigateToTutorial}
                                 className="text-xs sm:text-sm font-bold text-premium-teal hover:text-emerald-700 dark:hover:text-emerald-400 flex items-center gap-1.5 transition-colors order-2 sm:order-1"
                             >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                                 Assista Completos na Ajuda
                             </button>
 
                             <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
                                 {currentStep > 0 && (
-                                    <button 
+                                    <button
                                         onClick={prevStep}
                                         className="h-10 sm:h-11 px-4 sm:px-6 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border shadow-sm border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                     >
                                         Voltar
                                     </button>
                                 )}
-                                <button 
+                                <button
                                     onClick={nextStep}
                                     className="h-10 sm:h-11 w-full sm:w-auto px-6 sm:px-8 rounded-xl font-bold text-white bg-premium-teal hover:bg-emerald-600 shadow-lg shadow-premium-teal/20 transition-all active:scale-95 flex-shrink-0"
                                 >
@@ -251,8 +251,8 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId }) => {
                         <div className="flex items-center justify-center sm:justify-start">
                             <label className="flex items-center gap-2 cursor-pointer group">
                                 <div className="relative flex items-center justify-center">
-                                    <input 
-                                        type="checkbox" 
+                                    <input
+                                        type="checkbox"
                                         className="peer sr-only"
                                         checked={dontShowAgain}
                                         onChange={(e) => setDontShowAgain(e.target.checked)}
@@ -267,7 +267,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId }) => {
                                 </span>
                             </label>
                         </div>
-                        
+
                     </div>
                 </div>
 
