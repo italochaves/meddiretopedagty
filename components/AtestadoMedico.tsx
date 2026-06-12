@@ -47,12 +47,18 @@ const AtestadoMedico: React.FC = () => {
             return;
         }
 
-        const term = cidSearch.toLowerCase().trim();
-        const results = cidDatabase.filter(item => 
-            item.codigo.toLowerCase().includes(term) || 
-            item.nome.toLowerCase().includes(term)
-        ).slice(0, 50); // Limit exactly to first 50 hits for speed
-        
+        // Normaliza o termo de busca: minúsculas + remove diacríticos (acentos)
+        // Isso garante que "colera" encontre "Cólera", "nao" encontre "não", etc.
+        const normalize = (str: string) =>
+            str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+        const term = normalize(cidSearch.trim());
+
+        const results = cidDatabase.filter(item =>
+            item.codigo.toLowerCase().includes(term) ||
+            normalize(item.nome).includes(term)
+        ).slice(0, 50); // Limita aos primeiros 50 resultados para performance
+
         setSearchResults(results);
     }, [cidSearch, cidDatabase]);
 

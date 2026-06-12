@@ -104,11 +104,11 @@ const PrescriptionQueue: React.FC<PrescriptionQueueProps> = ({
     const isEmpty = orderedMeds.length === 0;
 
     return (
-        <div className="space-y-1">
-            {/* Cabeçalho compacto */}
+        <div className="space-y-1.5">
+            {/* Cabeçalho */}
             <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
-                    Fila
+                <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    Fila da Prescrição
                     {orderedMeds.length > 0 && (
                         <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-premium-teal text-white text-[10px] font-black">
                             {orderedMeds.length}
@@ -130,15 +130,15 @@ const PrescriptionQueue: React.FC<PrescriptionQueueProps> = ({
             </div>
 
             {/* Área da fila */}
-            <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 {isEmpty ? (
-                    <div className="flex items-center justify-center h-8 px-3">
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">
+                    <div className="flex items-center justify-center h-10 px-3">
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
                             Nenhum medicamento selecionado
                         </p>
                     </div>
                 ) : (
-                    <div className="flex flex-col max-h-[140px] overflow-y-auto ped-scrollbar">
+                    <div className="flex flex-col max-h-[168px] overflow-y-auto ped-scrollbar">
                         {orderedMeds.map((id, index) => {
                             const med = medications.find(m => m.id === id);
                             if (!med) return null;
@@ -150,7 +150,7 @@ const PrescriptionQueue: React.FC<PrescriptionQueueProps> = ({
                                     onDragEnd={handleDragEnd}
                                     onDragOver={(e) => handleDragOver(e, index)}
                                     onDrop={(e) => handleDrop(e, index)}
-                                    className="flex items-center gap-1.5 px-2 py-1.5 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors cursor-grab active:cursor-grabbing"
+                                    className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-grab active:cursor-grabbing group"
                                 >
                                     {/* Handle */}
                                     <svg className="w-3 h-3 text-slate-300 dark:text-slate-600 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -162,14 +162,14 @@ const PrescriptionQueue: React.FC<PrescriptionQueueProps> = ({
                                         {index + 1}
                                     </span>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 truncate leading-tight">
+                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate leading-tight">
                                             {med.nome}
                                             {med.apresentacao && <span className="font-normal text-slate-400 ml-1">— {med.apresentacao}</span>}
                                         </p>
                                     </div>
                                     <button
                                         onClick={() => onRemove(id)}
-                                        className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                                        className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all opacity-50 group-hover:opacity-100"
                                         title={`Remover ${med.nome}`}
                                     >
                                         <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -218,6 +218,7 @@ const PediatriaPage: React.FC = () => {
     const [copySuccess, setCopySuccess] = useState('');
     const [addedToQueue, setAddedToQueue] = useState(false);
     const [orientacoes, setOrientacoes] = useState<string>('');
+    const [printTwoCopies, setPrintTwoCopies] = useState(false); // Imprimir em 2 vias
 
     // ==========================================
     // BUSCAR DADOS NO SUPABASE
@@ -415,12 +416,22 @@ const PediatriaPage: React.FC = () => {
 
     const handleAddToQueue = () => {
         if (editorRef.current) {
+            const html = editorRef.current.innerHTML;
             addToQueue({
                 id: 'pediatria-' + Date.now(),
                 titulo: `Prescrição Pediátrica (${weight}kg)`,
-                texto: editorRef.current.innerHTML,
+                texto: html,
                 tipo: 'prescricao'
             });
+            if (printTwoCopies) {
+                // Segunda via (ID distinto para evitar colisião de React Key)
+                addToQueue({
+                    id: 'pediatria-' + Date.now() + '_via2',
+                    titulo: `Prescrição Pediátrica (${weight}kg)`,
+                    texto: html,
+                    tipo: 'prescricao'
+                });
+            }
             setAddedToQueue(true);
             setTimeout(() => setAddedToQueue(false), 2000);
         }
@@ -496,9 +507,6 @@ const PediatriaPage: React.FC = () => {
                             <h1 className="text-xl font-extrabold tracking-tight text-slate-800 dark:text-white leading-tight">
                                 Prescrição Pediátrica Dinâmica
                             </h1>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                Cálculo de doses com live preview
-                            </span>
                         </div>
                     </div>
                 </div>
@@ -512,8 +520,8 @@ const PediatriaPage: React.FC = () => {
                     <div className="w-full lg:w-[44%] flex flex-col gap-3">
 
                         {/* ── A. PESO ──────────────────────────── */}
-                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-3">
-                            <label htmlFor="weight" className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-4">
+                            <label htmlFor="weight" className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
                                 Peso da Criança
                             </label>
                             {/* Peso + quick pills em linha */}
@@ -553,20 +561,20 @@ const PediatriaPage: React.FC = () => {
                         </div>
 
                         {/* ── B. MODO ──────────────────────────── */}
-                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-3">
-                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-4">
+                            <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2.5">
                                 Modo de Prescrição
                             </label>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setMode('prontas')}
-                                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border-2 transition-all ${mode === 'prontas' ? 'border-premium-teal bg-premium-teal/5 text-premium-teal' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-premium-teal/50'}`}
+                                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border-2 transition-all ${mode === 'prontas' ? 'border-premium-teal bg-premium-teal/5 text-premium-teal' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-premium-teal/50'}`}
                                 >
                                     🩺 Protocolos Prontos
                                 </button>
                                 <button
                                     onClick={() => setMode('livre')}
-                                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border-2 transition-all ${mode === 'livre' ? 'border-premium-teal bg-premium-teal/5 text-premium-teal' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-premium-teal/50'}`}
+                                    className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border-2 transition-all ${mode === 'livre' ? 'border-premium-teal bg-premium-teal/5 text-premium-teal' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-premium-teal/50'}`}
                                 >
                                     ✏️ Prescrição Livre
                                 </button>
@@ -575,7 +583,7 @@ const PediatriaPage: React.FC = () => {
 
                         {/* ── C. FILA (modo livre) ─────────────── */}
                         {mode === 'livre' && (
-                            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-3">
+                            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-4">
                                 <PrescriptionQueue
                                     orderedMeds={orderedMeds}
                                     medications={medications}
@@ -587,20 +595,20 @@ const PediatriaPage: React.FC = () => {
                         )}
 
                         {/* ── D. CONTEÚDO DINÂMICO DO MODO ─────── */}
-                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-3 flex flex-col gap-2">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-4 flex flex-col gap-3">
 
                             {mode === 'prontas' ? (
                                 /* PROTOCOLOS */
                                 <>
-                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                    <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                         Condição Clínica
                                     </label>
-                                    <div className="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto ped-scrollbar pr-1">
+                                    <div className="grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto ped-scrollbar pr-1">
                                         {protocols.map((protocol) => (
                                             <button
                                                 key={protocol.id}
                                                 onClick={() => setSelectedProtocol(protocol.id)}
-                                                className={`p-2 rounded-lg border-2 text-xs font-bold transition-all text-left flex items-center justify-between ${selectedProtocol === protocol.id ? 'bg-premium-teal text-white border-premium-teal' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-premium-teal'}`}
+                                                className={`p-2.5 rounded-lg border-2 text-xs font-bold transition-all text-left flex items-center justify-between ${selectedProtocol === protocol.id ? 'bg-premium-teal text-white border-premium-teal' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-premium-teal'}`}
                                             >
                                                 <span className="truncate">{protocol.nome_condicao}</span>
                                                 {selectedProtocol === protocol.id && (
@@ -613,7 +621,7 @@ const PediatriaPage: React.FC = () => {
                             ) : (
                                 /* MEDICAMENTOS LIVRE */
                                 <>
-                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                    <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                         Banco de Medicamentos
                                     </label>
 
@@ -636,49 +644,49 @@ const PediatriaPage: React.FC = () => {
                                         )}
                                     </div>
 
-                                    {/* Lista compacta de medicamentos */}
-                                    <div className="flex flex-col gap-1 max-h-[280px] overflow-y-auto ped-scrollbar pr-1">
+                                    {/* Lista de medicamentos */}
+                                    <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto ped-scrollbar pr-0.5">
                                         {filteredMeds.map((med) => {
                                             const isSelected = orderedMeds.includes(med.id);
                                             const isPosologyOpen = openPosologyId === med.id;
                                             return (
-                                                <div key={med.id} className={`rounded-lg border transition-all ${isSelected ? 'bg-premium-teal/5 border-premium-teal' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 hover:border-premium-teal/30'}`}>
+                                                <div key={med.id} className={`rounded-lg border transition-all ${isSelected ? 'bg-premium-teal/5 dark:bg-premium-teal/10 border-premium-teal/60' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 hover:border-premium-teal/30'}`}>
                                                     {/* Linha principal do medicamento */}
                                                     <div
                                                         onClick={() => toggleMed(med.id)}
-                                                        className="flex items-center justify-between px-3 py-2 cursor-pointer"
+                                                        className="flex items-center justify-between px-3 py-2.5 cursor-pointer"
                                                     >
-                                                        <div className="flex-1 min-w-0">
-                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-tight block truncate">
+                                                        <div className="flex-1 min-w-0 pr-2">
+                                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-tight block truncate">
                                                                 {med.nome}
                                                             </span>
                                                             {med.apresentacao && (
-                                                                <span className="text-[10px] text-slate-400 dark:text-slate-500 block truncate leading-tight">
+                                                                <span className="text-xs text-slate-400 dark:text-slate-500 block truncate leading-tight mt-0.5">
                                                                     {med.apresentacao}
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                                                        <div className="flex items-center gap-1.5 flex-shrink-0">
                                                             {/* Botão editar posologia — apenas se selecionado */}
                                                             {isSelected && (
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); togglePosology(med.id); }}
-                                                                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold border transition-all ${isPosologyOpen ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-amber-400 hover:text-amber-500'}`}
+                                                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-all ${isPosologyOpen ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-amber-400 hover:text-amber-500'}`}
                                                                     title="Editar posologia"
                                                                 >
                                                                     ✏️ pos.
                                                                 </button>
                                                             )}
-                                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-premium-teal border-premium-teal' : 'border-slate-300 dark:border-slate-600'}`}>
-                                                                {isSelected && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
+                                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${isSelected ? 'bg-premium-teal border-premium-teal' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                                {isSelected && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>}
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    {/* Accordion de posologia — só abre se isSelected E isPosologyOpen */}
+                                                    {/* Accordion de posologia */}
                                                     {isSelected && isPosologyOpen && (
-                                                        <div className="px-3 pb-2 pt-1 border-t border-slate-200 dark:border-slate-700 animate-fade-in">
-                                                            <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide block mb-1">
+                                                        <div className="px-3 pb-2.5 pt-1 border-t border-slate-200 dark:border-slate-700 animate-fade-in">
+                                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1.5">
                                                                 Ajustar posologia:
                                                             </label>
                                                             <input
@@ -686,7 +694,7 @@ const PediatriaPage: React.FC = () => {
                                                                 value={customPosologies[med.id] !== undefined ? customPosologies[med.id] : med.posologia_padrao}
                                                                 onChange={(e) => handleCustomPosology(med.id, e.target.value)}
                                                                 onClick={(e) => e.stopPropagation()}
-                                                                className="w-full text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-premium-teal transition-all"
+                                                                className="w-full text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-premium-teal transition-all"
                                                             />
                                                         </div>
                                                     )}
@@ -694,7 +702,7 @@ const PediatriaPage: React.FC = () => {
                                             );
                                         })}
                                         {filteredMeds.length === 0 && (
-                                            <p className="text-xs text-slate-400 text-center py-4 italic">Nenhum medicamento encontrado.</p>
+                                            <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-6 italic">Nenhum medicamento encontrado.</p>
                                         )}
                                     </div>
                                 </>
@@ -705,22 +713,22 @@ const PediatriaPage: React.FC = () => {
                         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card overflow-hidden">
                             <button
                                 onClick={() => setShowOrientacoes(!showOrientacoes)}
-                                className="w-full flex items-center justify-between px-3 py-2.5 text-left"
+                                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
                             >
-                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                     {showOrientacoes ? '▾' : '▸'} Orientações Gerais
-                                    {orientacoes.trim() && <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-premium-teal inline-block align-middle" />}
+                                    {orientacoes.trim() && <span className="w-1.5 h-1.5 rounded-full bg-premium-teal inline-block" />}
                                 </span>
-                                <span className="text-[10px] text-slate-400">{showOrientacoes ? 'fechar' : 'abrir'}</span>
+                                <span className="text-[11px] text-slate-400">{showOrientacoes ? 'fechar' : 'opcional'}</span>
                             </button>
                             {showOrientacoes && (
-                                <div className="px-3 pb-3 border-t border-slate-100 dark:border-slate-700">
+                                <div className="px-4 pb-4 pt-1 border-t border-slate-100 dark:border-slate-700/60">
                                     <textarea
                                         rows={3}
                                         value={orientacoes}
                                         onChange={(e) => setOrientacoes(e.target.value)}
                                         placeholder="Ex: Refazer exames após 7 dias, manter hidratação..."
-                                        className="w-full mt-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-premium-teal/20 focus:border-premium-teal transition-all text-xs resize-none ped-scrollbar"
+                                        className="w-full mt-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-premium-teal/20 focus:border-premium-teal transition-all text-sm resize-none ped-scrollbar"
                                     />
                                 </div>
                             )}
@@ -767,38 +775,51 @@ const PediatriaPage: React.FC = () => {
                                 </div>
 
                                 {/* Rodapé sticky com botões de ação */}
-                                <div className="flex gap-2 p-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex-shrink-0">
-                                    <button
-                                        onClick={handleAddToQueue}
-                                        className={`flex-1 flex items-center justify-center px-3 py-2.5 text-xs font-bold text-white transition-all duration-200 rounded-lg shadow focus:outline-none focus:ring-2 focus:ring-offset-1 ${addedToQueue ? 'bg-green-600 focus:ring-green-500' : 'bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 focus:ring-slate-500'}`}
-                                    >
-                                        {addedToQueue ? (
-                                            <><svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Prontinho!</>
-                                        ) : (
-                                            <><svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg> Mandar p/ Impressão</>
-                                        )}
-                                    </button>
-                                    <button
-                                        onClick={copyToClipboard}
-                                        className="flex-1 flex items-center justify-center px-3 py-2.5 text-xs font-bold text-white transition-colors duration-200 rounded-lg shadow bg-premium-teal hover:bg-premium-teal/90 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-premium-teal"
-                                    >
-                                        {copySuccess ? (
-                                            <><svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Copiado!</>
-                                        ) : (
-                                            <><svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg> Copiar Rascunho</>
-                                        )}
-                                    </button>
+                                <div className="flex flex-col gap-2 px-3 pb-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex-shrink-0 pt-3">
+                                    {/* Checkbox 2 vias */}
+                                    <label className="flex items-center justify-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={printTwoCopies}
+                                            onChange={(e) => setPrintTwoCopies(e.target.checked)}
+                                            className="w-[15px] h-[15px] text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-600 rounded focus:ring-slate-800 transition-colors bg-white dark:bg-slate-800 cursor-pointer shadow-sm"
+                                        />
+                                        Imprimir em 2 vias
+                                    </label>
+                                    {/* Botões de ação */}
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleAddToQueue}
+                                            className={`flex-1 flex items-center justify-center px-4 py-3 text-sm font-bold text-white transition-all duration-200 rounded-xl focus:outline-none ${addedToQueue ? 'bg-green-600' : 'bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600'}`}
+                                        >
+                                            {addedToQueue ? (
+                                                <><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>{printTwoCopies ? 'Adicionadas 2 Vias!' : 'Prontinho!'}</>
+                                            ) : (
+                                                <><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>Mandar p/ Impressão</>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={copyToClipboard}
+                                            className="flex-1 flex items-center justify-center px-4 py-3 text-sm font-bold text-white transition-colors duration-200 rounded-xl bg-premium-teal hover:bg-premium-teal/90 focus:outline-none"
+                                        >
+                                            {copySuccess ? (
+                                                <><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>Copiado!</>
+                                            ) : (
+                                                <><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>Copiar Rascunho</>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
                             /* Estado vazio do preview */
-                            <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-white/50 dark:bg-slate-800/50 p-8 text-center" style={{ minHeight: '300px' }}>
-                                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4 shadow-inner">
-                                    <svg className="w-8 h-8 text-slate-300 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <div className="flex flex-col items-center justify-center p-10 text-center" style={{ minHeight: '300px' }}>
+                                <div className="w-14 h-14 bg-slate-100 dark:bg-slate-700/50 rounded-2xl flex items-center justify-center mb-4">
+                                    <svg className="w-7 h-7 text-slate-300 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                 </div>
-                                <h3 className="text-base font-bold text-slate-500 dark:text-slate-400 mb-1">Editor Ocioso</h3>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 max-w-[220px] leading-relaxed">
-                                    Insira o <strong>peso</strong> e selecione os <strong>medicamentos</strong> para gerar o rascunho.
+                                <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-1.5">Visualização Dinâmica</h3>
+                                <p className="text-xs text-slate-400 dark:text-slate-500 max-w-[200px] leading-relaxed">
+                                    Insira o <strong className="text-slate-500 dark:text-slate-400">peso</strong> e selecione os <strong className="text-slate-500 dark:text-slate-400">medicamentos</strong> para gerar o rascunho.
                                 </p>
                             </div>
                         )}

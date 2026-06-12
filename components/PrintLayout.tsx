@@ -31,6 +31,24 @@ const PrintLayout: React.FC = () => {
 
     return (
         <div id="print-content" className="hidden print:block">
+
+            {/*
+             * DATA FIXA PARA IMPRESSÃO MULTI-PÁGINA (apenas A4)
+             * ─────────────────────────────────────────────────
+             * Este elemento usa position:fixed no @media print,
+             * fazendo a data aparecer em TODAS as páginas impressas
+             * automaticamente (1ª, 2ª, 3ª páginas, vias duplicadas, etc.).
+             * É invisível na tela; o @media print o ativa.
+             * No modo A5_DUAL é ocultado (cada item tem sua própria data inline).
+             */}
+            <div
+                className="print-date-fixed"
+                style={{ display: 'none' }}
+                aria-hidden="true"
+            >
+                {currentDate}
+            </div>
+
             {chunks.map((chunk, chunkIndex) => (
                 <div 
                     key={`chunk-${chunkIndex}`} 
@@ -100,6 +118,8 @@ const PrintLayout: React.FC = () => {
                                         paddingTop: `${marginTop}px`,
                                         paddingLeft: `${sideMargin}px`,
                                         paddingRight: `${sideMargin}px`,
+                                        // Reserva espaço no rodapé para a data não sobrepor o texto
+                                        paddingBottom: `${dateOffsetBottom + 30}px`,
                                         display: 'flex',
                                         flexDirection: 'column'
                                     }}
@@ -143,20 +163,15 @@ const PrintLayout: React.FC = () => {
                                 </div>
 
                                 {/*
-                                 * CAMADA 3: Data no Rodapé
-                                 * —————————————————————————————————————————————————
-                                 * IMPORTANTE: posicionada diretamente no Inner Scaled Canvas
-                                 * (position: absolute, relativo ao div 210mm × 297mm),
-                                 * NÃO dentro do flex container .conteudo-texto.
-                                 *
-                                 * Motivo: dentro do flex com flexGrow/overflow:hidden, o
-                                 * position:absolute era resolvido em relação ao .conteudo-texto
-                                 * cujo height real pode ser menor que o canvas em chunks
-                                 * intermediários — causando a data aparecer apenas na última
-                                 * folha. Ao elevar para o canvas, cada item sempre tem sua
-                                 * própria data posicionada corretamente.
+                                 * CAMADA 3: Data por Item (usada somente no modo A5_DUAL)
+                                 * ─────────────────────────────────────────────────────────
+                                 * No modo A4, esta data é ocultada via CSS @media print —
+                                 * a .print-date-fixed (position:fixed) cobre todas as páginas.
+                                 * No modo A5_DUAL, cada item ocupa meia folha e não há
+                                 * quebra de página inesperada, então a data inline é segura.
                                  */}
                                 <div 
+                                    className="print-date-per-item"
                                     style={{ 
                                         position: 'absolute',
                                         bottom: `${dateOffsetBottom}px`,
@@ -212,6 +227,52 @@ const PrintLayout: React.FC = () => {
                     .print-body-text, .print-body-text * {
                         color: #000 !important;
                     }
+
+                    ${printFormat === 'A4' ? `
+                    /*
+                     * MODO A4: DATA FIXA EM TODAS AS PÁGINAS
+                     * ─────────────────────────────────────────────────────────────
+                     * position:fixed em @media print repete o elemento em cada
+                     * página impressa pelo navegador — funciona em Chrome, Edge,
+                     * Firefox e Safari (print mode).
+                     * Cobre todos os cenários: 1 página, 2+ páginas, 2 vias,
+                     * múltiplas prescrições na fila.
+                     */
+                    .print-date-fixed {
+                        display: block !important;
+                        visibility: visible !important;
+                        position: fixed;
+                        bottom: ${dateOffsetBottom}px;
+                        left: ${sideMargin}px;
+                        z-index: 9999;
+                        font-family: "Roboto", Arial, sans-serif;
+                        font-size: 14pt;
+                        color: #000 !important;
+                        padding: 2px 0;
+                        background: transparent;
+                    }
+
+                    /* Oculta a data por item no A4 — a data fixa já cobre todas as páginas */
+                    .print-date-per-item {
+                        display: none !important;
+                        visibility: hidden !important;
+                    }
+                    ` : `
+                    /*
+                     * MODO A5_DUAL: DATA INLINE POR ITEM
+                     * Cada item ocupa exatamente meia folha (148.5mm × 210mm),
+                     * então a data absoluta por item é suficiente e correta.
+                     */
+                    .print-date-fixed {
+                        display: none !important;
+                        visibility: hidden !important;
+                    }
+
+                    .print-date-per-item {
+                        display: block !important;
+                        visibility: visible !important;
+                    }
+                    `}
                 }
             `}</style>
         </div>
