@@ -2,6 +2,20 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { usePrint } from '../contexts/PrintContext';
 import { supabase } from "../services/supabase";
+import {
+    MedicamentoPediatrico,
+    medicamentoExigeIdade,
+    medicamentoExigePeso,
+    validarRestricoesMedicamento,
+    calcularIdadeTotalMeses,
+    definirTipoCalculo,
+    gerarPrescricaoPorPeso,
+    gerarPrescricaoPorIdade,
+    gerarPrescricaoDoseFixa,
+    gerarPrescricaoPorFaixaPeso,
+    getLabelTipoCalculo,
+    getCorBadgeTipo,
+} from './pediatriaLogica';
 
 // ==========================================
 // RICH TEXT EDITOR
@@ -31,17 +45,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ initialHtml, editorRef 
 // ==========================================
 // INTERFACES
 // ==========================================
-interface Medication {
-    id: number;
-    nome: string;
-    apresentacao: string;
-    via: string;
-    regra_calculo: string;
-    unidade: string;
-    posologia_padrao: string;
-    quantidade: string;
-    dose_maxima?: number;
-}
+type Medication = MedicamentoPediatrico;
 
 interface Protocol {
     id: number;
@@ -49,6 +53,178 @@ interface Protocol {
     ids_medicamentos: number[];
     orientacoes_gerais: string;
 }
+
+type ModalCor = 'NORMAL' | 'AMARELO' | 'VERMELHO';
+type ModalTipo = 'IDADE_OBRIGATORIA' | 'ALERTA_CONFIRMACAO';
+
+interface ModalInfo {
+    tipo: ModalTipo;
+    medId: number;
+    mensagens: string[];
+    cor: ModalCor;
+    nomeMed: string;
+}
+
+// ==========================================
+// COMPONENTE: Modal de Alerta/Confirmação
+// ==========================================
+interface AlertModalProps {
+    modalInfo: ModalInfo;
+    idadeAnos: string;
+    idadeMeses: string;
+    onSetIdadeAnos: (v: string) => void;
+    onSetIdadeMeses: (v: string) => void;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+const AlertModal: React.FC<AlertModalProps> = ({
+    modalInfo,
+    idadeAnos,
+    idadeMeses,
+    onSetIdadeAnos,
+    onSetIdadeMeses,
+    onConfirm,
+    onCancel,
+}) => {
+    const isIdade = modalInfo.tipo === 'IDADE_OBRIGATORIA';
+    const isVermelho = modalInfo.cor === 'VERMELHO';
+    const isAmarelo = modalInfo.cor === 'AMARELO';
+
+    const bgCard = isVermelho
+        ? 'border-red-200 dark:border-red-800'
+        : isAmarelo
+        ? 'border-amber-200 dark:border-amber-800'
+        : 'border-blue-200 dark:border-blue-800';
+
+    const iconColor = isVermelho ? 'text-red-500' : isAmarelo ? 'text-amber-500' : 'text-blue-500';
+    const titleColor = isVermelho
+        ? 'text-red-800 dark:text-red-200'
+        : isAmarelo
+        ? 'text-amber-800 dark:text-amber-200'
+        : 'text-blue-800 dark:text-blue-200';
+    const msgColor = isVermelho
+        ? 'text-red-700 dark:text-red-300'
+        : isAmarelo
+        ? 'text-amber-700 dark:text-amber-300'
+        : 'text-slate-600 dark:text-slate-400';
+    const confirmBg = isVermelho
+        ? 'bg-red-600 hover:bg-red-700'
+        : isAmarelo
+        ? 'bg-amber-500 hover:bg-amber-600'
+        : 'bg-premium-teal hover:bg-premium-teal/90';
+
+    const idadeTotalMeses = calcularIdadeTotalMeses(idadeAnos, idadeMeses);
+    const canConfirm = isIdade ? (Number(idadeAnos) > 0 || Number(idadeMeses) > 0) : true;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className={`w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl border-2 shadow-2xl overflow-hidden ${bgCard}`}>
+                {/* Cabeçalho */}
+                <div className="flex items-start gap-3 p-5 pb-3">
+                    <div className={`flex-shrink-0 mt-0.5 ${iconColor}`}>
+                        {isIdade ? (
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        ) : (
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className={`text-sm font-black mb-1 ${titleColor}`}>
+                            {isIdade ? '👶 Idade necessária' : isVermelho ? '🚨 Alerta Clínico' : '⚠️ Atenção'}
+                        </h3>
+                        {modalInfo.nomeMed && (
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 truncate">
+                                {modalInfo.nomeMed}
+                            </p>
+                        )}
+                        {isIdade ? (
+                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Esta medicação depende da idade da criança para cálculo ou segurança.
+                                Informe a idade em anos e meses para continuar.
+                            </p>
+                        ) : (
+                            <div className="space-y-1.5">
+                                {modalInfo.mensagens.map((msg, i) => (
+                                    <p key={i} className={`text-xs leading-relaxed ${msgColor}`}>
+                                        • {msg}
+                                    </p>
+                                ))}
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 italic">
+                                    Deseja adicionar mesmo assim?
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Inputs de idade (somente para IDADE_OBRIGATORIA) */}
+                {isIdade && (
+                    <div className="px-5 pb-4">
+                        <div className="flex items-end gap-3">
+                            <div className="flex-1">
+                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
+                                    Anos
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="18"
+                                    value={idadeAnos}
+                                    onChange={e => onSetIdadeAnos(e.target.value)}
+                                    placeholder="0"
+                                    autoFocus
+                                    className="w-full text-center text-2xl font-black text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-2 py-2.5 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition-all"
+                                />
+                            </div>
+                            <div className="flex-shrink-0 pb-3 text-slate-400 font-bold text-base">e</div>
+                            <div className="flex-1">
+                                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
+                                    Meses
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="11"
+                                    value={idadeMeses}
+                                    onChange={e => onSetIdadeMeses(e.target.value)}
+                                    placeholder="0"
+                                    className="w-full text-center text-2xl font-black text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-2 py-2.5 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition-all"
+                                />
+                            </div>
+                        </div>
+                        {(Number(idadeAnos) > 0 || Number(idadeMeses) > 0) && (
+                            <p className="text-[11px] text-violet-500 dark:text-violet-400 text-center mt-2 font-bold">
+                                = {idadeTotalMeses} meses totais
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {/* Botões */}
+                <div className="flex gap-2 px-5 pb-5">
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 py-2.5 px-4 rounded-xl text-sm font-bold border-2 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={!canConfirm}
+                        className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${confirmBg}`}
+                    >
+                        {isIdade ? 'Confirmar' : 'Adicionar mesmo assim'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // ==========================================
 // COMPONENTE: Fila da Prescrição Compacta
@@ -105,7 +281,6 @@ const PrescriptionQueue: React.FC<PrescriptionQueueProps> = ({
 
     return (
         <div className="space-y-1.5">
-            {/* Cabeçalho */}
             <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                     Fila da Prescrição
@@ -129,7 +304,6 @@ const PrescriptionQueue: React.FC<PrescriptionQueueProps> = ({
                 )}
             </div>
 
-            {/* Área da fila */}
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 {isEmpty ? (
                     <div className="flex items-center justify-center h-10 px-3">
@@ -152,7 +326,6 @@ const PrescriptionQueue: React.FC<PrescriptionQueueProps> = ({
                                     onDrop={(e) => handleDrop(e, index)}
                                     className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-grab active:cursor-grabbing group"
                                 >
-                                    {/* Handle */}
                                     <svg className="w-3 h-3 text-slate-300 dark:text-slate-600 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                                         <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
                                         <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
@@ -197,28 +370,32 @@ const quickWeights = [5, 10, 15, 20, 25, 30];
 const PediatriaPage: React.FC = () => {
     const { addToQueue } = usePrint();
 
+    // ── Estado existente ─────────────────────────────────────
     const [weight, setWeight] = useState<string>('');
     const [mode, setMode] = useState<'prontas' | 'livre'>('livre');
     const [selectedProtocol, setSelectedProtocol] = useState<number | null>(null);
     const [orderedMeds, setOrderedMeds] = useState<number[]>([]);
     const [customPosologies, setCustomPosologies] = useState<Record<number, string>>({});
     const [searchTerm, setSearchTerm] = useState('');
-    // Controle de accordion de posologia por medicamento
     const [openPosologyId, setOpenPosologyId] = useState<number | null>(null);
-    // Controle do accordion de orientações gerais
     const [showOrientacoes, setShowOrientacoes] = useState(false);
-
     const [medications, setMedications] = useState<Medication[]>([]);
     const [protocols, setProtocols] = useState<Protocol[]>([]);
     const [isFetchingDB, setIsFetchingDB] = useState(true);
     const [generatedPrescription, setGeneratedPrescription] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-
     const editorRef = useRef<HTMLDivElement>(null);
     const [copySuccess, setCopySuccess] = useState('');
     const [addedToQueue, setAddedToQueue] = useState(false);
     const [orientacoes, setOrientacoes] = useState<string>('');
-    const [printTwoCopies, setPrintTwoCopies] = useState(false); // Imprimir em 2 vias
+    const [printTwoCopies, setPrintTwoCopies] = useState(false);
+
+    // ── Novos estados ────────────────────────────────────────
+    const [idadeAnos, setIdadeAnos] = useState<string>('');
+    const [idadeMeses, setIdadeMeses] = useState<string>('');
+    const [modalInfo, setModalInfo] = useState<ModalInfo | null>(null);
+    const [pendingMedId, setPendingMedId] = useState<number | null>(null);
+    const [alertasConfirmados, setAlertasConfirmados] = useState<Set<number>>(new Set());
 
     // ==========================================
     // BUSCAR DADOS NO SUPABASE
@@ -252,7 +429,8 @@ const PediatriaPage: React.FC = () => {
     }, []);
 
     // ==========================================
-    // MOTOR DE CÁLCULO
+    // MOTOR DE CÁLCULO ANTIGO — preservado integralmente
+    // Usado como fallback para PADRAO_ATUAL
     // ==========================================
     const calculateDose = useCallback((weightVal: number, med: Medication) => {
         const regra = med.regra_calculo.toUpperCase();
@@ -260,7 +438,7 @@ const PediatriaPage: React.FC = () => {
         let atingiuMaximo = false;
 
         if (regra.includes('FIXO')) {
-            const valorFixo = regra.split(':')[1]?.trim() || '1';
+            const valorFixo = med.regra_calculo.split(':')[1]?.trim() || '1';
             return { valor: valorFixo, atingiuMaximo: false };
         }
 
@@ -292,7 +470,19 @@ const PediatriaPage: React.FC = () => {
         return { valor: doseFormatada, atingiuMaximo };
     }, []);
 
-    const generateHtmlPrescription = useCallback((meds: Medication[], weightVal: number, obsGerais: string, customPoso: Record<number, string>) => {
+    // ==========================================
+    // GERADOR DE HTML DA PRESCRIÇÃO
+    // Usa novo motor mas mantém fallback PADRAO_ATUAL idêntico ao original
+    // regra_antigravity: NÃO aparece na receita impressa
+    // ==========================================
+    const generateHtmlPrescription = useCallback((
+        meds: Medication[],
+        weightVal: number,
+        obsGerais: string,
+        customPoso: Record<number, string>,
+        idadeAnosVal: string,
+        idadeMesesVal: string
+    ) => {
         const grouped = meds.reduce((acc, med) => {
             if (!acc[med.via]) acc[med.via] = [];
             acc[med.via].push(med);
@@ -306,18 +496,63 @@ const PediatriaPage: React.FC = () => {
         Object.keys(grouped).forEach(via => {
             html += `<div style="text-align: center; margin-top: 10px; margin-bottom: 10px; font-weight: bold;">${via.toUpperCase()}</div>`;
             grouped[via].forEach(med => {
-                const resultadoDose = calculateDose(weightVal, med);
+                const tipo = definirTipoCalculo(med);
+                const idadeTotalMeses = calcularIdadeTotalMeses(idadeAnosVal, idadeMesesVal);
+                const w = weightVal;
+
+                // Calcular dose usando o novo motor
+                let resultadoDose;
+                if (tipo === 'POR_PESO') {
+                    resultadoDose = gerarPrescricaoPorPeso(med, w);
+                } else if (tipo === 'POR_IDADE') {
+                    const tentativa = gerarPrescricaoPorIdade(med, idadeTotalMeses);
+                    // Se não conseguiu calcular por idade e tiver peso disponível
+                    // e usar_regra_calculo_original !== NÃO → fallback por peso
+                    if (tentativa.precisaConferencia && w > 0 && med.usar_regra_calculo_original !== 'NÃO') {
+                        resultadoDose = { ...calculateDose(w, med), tipoCalculo: 'PADRAO_ATUAL' };
+                    } else {
+                        resultadoDose = tentativa;
+                    }
+                } else if (tipo === 'DOSE_FIXA') {
+                    resultadoDose = gerarPrescricaoDoseFixa(med);
+                } else if (tipo === 'FAIXA_PESO') {
+                    resultadoDose = gerarPrescricaoPorFaixaPeso(med, w);
+                } else {
+                    // PADRAO_ATUAL — comportamento 100% original
+                    const doseAntiga = calculateDose(w, med);
+                    resultadoDose = { ...doseAntiga, tipoCalculo: 'PADRAO_ATUAL' };
+                }
+
                 const inicioLinha = `${counter}- ${med.nome.toUpperCase()} ${med.apresentacao.toUpperCase()}`;
                 const fimLinha = med.quantidade.toUpperCase();
                 const espacoOcupado = inicioLinha.length + fimLinha.length;
                 const quantidadeTracinhos = espacoOcupado < caracteresMaximosLinha ? caracteresMaximosLinha - espacoOcupado : 4;
                 const tracinhos = '-'.repeat(quantidadeTracinhos);
                 html += `<div><strong>${inicioLinha}</strong> <span style="color: #64748b; font-weight: normal;">${tracinhos}</span> <strong>${fimLinha}</strong></div>`;
+
                 const textoPosologia = customPoso[med.id] !== undefined ? customPoso[med.id] : med.posologia_padrao;
-                let instrucao = `Dar ${resultadoDose.valor} ${med.unidade}, ${textoPosologia}.`;
+
+                let instrucao: string;
+                if (resultadoDose.precisaConferencia) {
+                    // Não calculou automaticamente — pede conferência manual
+                    instrucao = `⚠️ Conferir dose por faixa etária${textoPosologia ? `. ${textoPosologia}.` : '.'}`;
+                    if (resultadoDose.textoManual) {
+                        instrucao += `<div style="font-size: 0.82em; color: #64748b; margin-top: 3px; font-style: italic; white-space: pre-wrap;">[Referência: ${resultadoDose.textoManual}]</div>`;
+                    }
+                } else {
+                    // Verifica se o valor já inclui unidade (ex: "5 ml", "1 comprimido")
+                    const valorTemUnidade = /ml|mg|gotas|comp/i.test(resultadoDose.valor);
+                    if (tipo === 'POR_IDADE' || tipo === 'DOSE_FIXA' || valorTemUnidade) {
+                        instrucao = `Dar ${resultadoDose.valor}${valorTemUnidade ? '' : ` ${med.unidade}`}, ${textoPosologia}.`;
+                    } else {
+                        instrucao = `Dar ${resultadoDose.valor} ${med.unidade}, ${textoPosologia}.`;
+                    }
+                }
+
                 if (resultadoDose.atingiuMaximo) {
                     instrucao += ` <span style="font-size: 1.1em;" title="Dose ajustada para o limite máximo" aria-label="Dose Máxima">🔒</span>`;
                 }
+
                 html += `<div style="margin-bottom: 18px;">${instrucao}</div>`;
                 counter++;
             });
@@ -370,30 +605,148 @@ const PediatriaPage: React.FC = () => {
             }
         }
 
-        const htmlOutput = generateHtmlPrescription(selectedMedsData, w, orientacoesFinais, customPosologies);
+        const htmlOutput = generateHtmlPrescription(selectedMedsData, w, orientacoesFinais, customPosologies, idadeAnos, idadeMeses);
         setGeneratedPrescription(htmlOutput);
-    }, [weight, mode, selectedProtocol, orderedMeds, customPosologies, orientacoes, medications, protocols, generateHtmlPrescription]);
+    }, [weight, mode, selectedProtocol, orderedMeds, customPosologies, orientacoes, medications, protocols, generateHtmlPrescription, idadeAnos, idadeMeses]);
+
+    // ==========================================
+    // LÓGICA DE ADICIONAR MEDICAMENTO
+    // ==========================================
+    const _finalizarAdicaoMed = useCallback((id: number) => {
+        setOrderedMeds(prev => [...prev, id]);
+        setPendingMedId(null);
+        setModalInfo(null);
+    }, []);
+
+    const tryAddMed = useCallback((id: number, idadeAnosOverride?: string, idadeMesesOverride?: string) => {
+        const med = medications.find(m => m.id === id);
+        if (!med) return;
+
+        const iaUsado = idadeAnosOverride !== undefined ? idadeAnosOverride : idadeAnos;
+        const imUsado = idadeMesesOverride !== undefined ? idadeMesesOverride : idadeMeses;
+
+        const exigeIdade = medicamentoExigeIdade(med);
+        const exigePeso = medicamentoExigePeso(med);
+
+        // Passo 1: Verificar se exige idade mas não foi preenchida
+        if (exigeIdade && !iaUsado && !imUsado) {
+            setPendingMedId(id);
+            setModalInfo({
+                tipo: 'IDADE_OBRIGATORIA',
+                medId: id,
+                mensagens: [],
+                cor: 'NORMAL',
+                nomeMed: `${med.nome}${med.apresentacao ? ' — ' + med.apresentacao : ''}`,
+            });
+            return;
+        }
+
+        // Passo 2: Validar restrições com os valores atuais
+        const pesoKg = parseFloat(weight) || null;
+        const idadeTotalMeses = exigeIdade ? calcularIdadeTotalMeses(iaUsado, imUsado) : null;
+        const validacao = validarRestricoesMedicamento(
+            med,
+            exigePeso ? pesoKg : null,
+            exigeIdade ? idadeTotalMeses : null
+        );
+
+        if (validacao.precisaConfirmacao && !alertasConfirmados.has(id)) {
+            setPendingMedId(id);
+            setModalInfo({
+                tipo: 'ALERTA_CONFIRMACAO',
+                medId: id,
+                mensagens: validacao.mensagens,
+                cor: validacao.cor,
+                nomeMed: `${med.nome}${med.apresentacao ? ' — ' + med.apresentacao : ''}`,
+            });
+            return;
+        }
+
+        // Passo 3: Tudo ok — adicionar
+        _finalizarAdicaoMed(id);
+    }, [medications, idadeAnos, idadeMeses, weight, alertasConfirmados, _finalizarAdicaoMed]);
+
+    const toggleMed = (id: number) => {
+        if (orderedMeds.includes(id)) {
+            // Remover
+            setOrderedMeds(prev => prev.filter(m => m !== id));
+            setOpenPosologyId(prev => prev === id ? null : prev);
+            setAlertasConfirmados(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+        } else {
+            tryAddMed(id);
+        }
+    };
+
+    // ── Confirmar modal ──────────────────────────────────────
+    const handleModalConfirm = () => {
+        if (!modalInfo || pendingMedId === null) {
+            setModalInfo(null);
+            return;
+        }
+
+        if (modalInfo.tipo === 'IDADE_OBRIGATORIA') {
+            // Usuário preencheu a idade — agora verificar alertas com a nova idade
+            const med = medications.find(m => m.id === pendingMedId);
+            if (!med) { setModalInfo(null); return; }
+
+            const pesoKg = parseFloat(weight) || null;
+            const idadeTotalMeses = calcularIdadeTotalMeses(idadeAnos, idadeMeses);
+            const validacao = validarRestricoesMedicamento(
+                med,
+                medicamentoExigePeso(med) ? pesoKg : null,
+                idadeTotalMeses
+            );
+
+            if (validacao.precisaConfirmacao && !alertasConfirmados.has(pendingMedId)) {
+                // Mostrar confirmação de alerta
+                setModalInfo({
+                    tipo: 'ALERTA_CONFIRMACAO',
+                    medId: pendingMedId,
+                    mensagens: validacao.mensagens,
+                    cor: validacao.cor,
+                    nomeMed: modalInfo.nomeMed,
+                });
+                return;
+            }
+
+            // Sem alertas — adicionar
+            _finalizarAdicaoMed(pendingMedId);
+
+        } else if (modalInfo.tipo === 'ALERTA_CONFIRMACAO') {
+            // Usuário confirmou apesar do alerta
+            setAlertasConfirmados(prev => new Set([...prev, pendingMedId]));
+            _finalizarAdicaoMed(pendingMedId);
+        }
+    };
+
+    const handleModalCancel = () => {
+        setPendingMedId(null);
+        setModalInfo(null);
+    };
 
     // ==========================================
     // AÇÕES
     // ==========================================
-    const toggleMed = (id: number) => {
-        setOrderedMeds(prev =>
-            prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
-        );
-        // Fecha posologia se desmarcar
-        if (orderedMeds.includes(id)) {
-            setOpenPosologyId(prev => prev === id ? null : prev);
-        }
-    };
-
     const removeMed = (id: number) => {
         setOrderedMeds(prev => prev.filter(m => m !== id));
         setOpenPosologyId(prev => prev === id ? null : prev);
+        setAlertasConfirmados(prev => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+        });
     };
 
     const reorderMeds = (newOrder: number[]) => setOrderedMeds(newOrder);
-    const clearAllMeds = () => { setOrderedMeds([]); setOpenPosologyId(null); };
+    const clearAllMeds = () => {
+        setOrderedMeds([]);
+        setOpenPosologyId(null);
+        setAlertasConfirmados(new Set());
+    };
 
     const handleCustomPosology = (medId: number, value: string) => {
         setCustomPosologies(prev => ({ ...prev, [medId]: value }));
@@ -424,7 +777,6 @@ const PediatriaPage: React.FC = () => {
                 tipo: 'prescricao'
             });
             if (printTwoCopies) {
-                // Segunda via (ID distinto para evitar colisião de React Key)
                 addToQueue({
                     id: 'pediatria-' + Date.now() + '_via2',
                     titulo: `Prescrição Pediátrica (${weight}kg)`,
@@ -460,6 +812,54 @@ const PediatriaPage: React.FC = () => {
         );
     }
 
+    // ==========================================
+    // COMPUTED VALUES (render time)
+    // ==========================================
+
+    // Medicamentos atualmente selecionados (modo livre ou protocolo)
+    const allSelectedMeds: Medication[] = [];
+    if (mode === 'livre') {
+        orderedMeds.forEach(id => {
+            const m = medications.find(x => x.id === id);
+            if (m) allSelectedMeds.push(m);
+        });
+    } else if (selectedProtocol) {
+        const proto = protocols.find(p => p.id === selectedProtocol);
+        if (proto) {
+            medications.filter(m => proto.ids_medicamentos.includes(m.id)).forEach(m => allSelectedMeds.push(m));
+        }
+    }
+
+    const medsQueExigemIdade = allSelectedMeds.filter(m => medicamentoExigeIdade(m));
+    const medsQueExigemPeso = allSelectedMeds.filter(m => medicamentoExigePeso(m));
+    const idadeObrigatoria = medsQueExigemIdade.length > 0;
+    const pesoObrigatorio = medsQueExigemPeso.length > 0;
+
+    const pesoKgAtual = parseFloat(weight) || null;
+    const idadeTotalMesesAtual = (idadeAnos || idadeMeses)
+        ? calcularIdadeTotalMeses(idadeAnos, idadeMeses)
+        : null;
+
+    // Alertas ativos em medicamentos selecionados
+    const alertasMedsSelecionados = allSelectedMeds
+        .map(med => {
+            const exigeI = medicamentoExigeIdade(med);
+            const exigeP = medicamentoExigePeso(med);
+            const val = validarRestricoesMedicamento(
+                med,
+                exigeP ? pesoKgAtual : null,
+                exigeI ? idadeTotalMesesAtual : null
+            );
+            return { med, validacao: val };
+        })
+        .filter(x => x.validacao.mensagens.length > 0);
+
+    const mostrarPainelResumo = (
+        medsQueExigemPeso.length > 0 ||
+        medsQueExigemIdade.length > 0 ||
+        alertasMedsSelecionados.length > 0
+    );
+
     const filteredMeds = medications.filter(med => {
         if (searchTerm.trim().length >= 2) {
             const term = searchTerm.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -470,9 +870,12 @@ const PediatriaPage: React.FC = () => {
         return true;
     });
 
+    // ==========================================
+    // RENDER
+    // ==========================================
     return (
         <>
-            {/* Estilos de scrollbar escura embutidos */}
+            {/* Estilos de scrollbar */}
             <style>{`
                 .ped-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
                 .ped-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -481,6 +884,19 @@ const PediatriaPage: React.FC = () => {
                 .dark .ped-scrollbar::-webkit-scrollbar-thumb { background: #4B5563; }
                 .dark .ped-scrollbar::-webkit-scrollbar-thumb:hover { background: #6B7280; }
             `}</style>
+
+            {/* Modal de alerta/confirmação */}
+            {modalInfo && (
+                <AlertModal
+                    modalInfo={modalInfo}
+                    idadeAnos={idadeAnos}
+                    idadeMeses={idadeMeses}
+                    onSetIdadeAnos={setIdadeAnos}
+                    onSetIdadeMeses={setIdadeMeses}
+                    onConfirm={handleModalConfirm}
+                    onCancel={handleModalCancel}
+                />
+            )}
 
             {/* Toast de sucesso */}
             {addedToQueue && (
@@ -492,7 +908,7 @@ const PediatriaPage: React.FC = () => {
                 </div>
             )}
 
-            {/* WRAPPER PRINCIPAL — ocupa altura útil da tela */}
+            {/* WRAPPER PRINCIPAL */}
             <div className="flex flex-col animate-fade-in" style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
                 {/* CABEÇALHO COMPACTO */}
@@ -511,11 +927,11 @@ const PediatriaPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* GRID PRINCIPAL: duas colunas fixas */}
+                {/* GRID PRINCIPAL */}
                 <div className="flex flex-col lg:flex-row gap-4 items-start">
 
                     {/* ════════════════════════════════════════
-                        COLUNA ESQUERDA — Controles compactos
+                        COLUNA ESQUERDA — Controles
                     ════════════════════════════════════════ */}
                     <div className="w-full lg:w-[44%] flex flex-col gap-3">
 
@@ -523,8 +939,8 @@ const PediatriaPage: React.FC = () => {
                         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-4">
                             <label htmlFor="weight" className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
                                 Peso da Criança
+                                {pesoObrigatorio && <span className="ml-1 text-blue-400">*</span>}
                             </label>
-                            {/* Peso + quick pills em linha */}
                             <div className="flex items-center gap-2 flex-wrap">
                                 <div className="relative flex-shrink-0">
                                     <input
@@ -541,7 +957,7 @@ const PediatriaPage: React.FC = () => {
                                                 setError(null);
                                             }
                                         }}
-                                        className="w-28 text-2xl font-black text-premium-teal bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-600 rounded-lg px-3 py-1.5 focus:outline-none focus:border-premium-teal focus:ring-2 focus:ring-premium-teal/10 transition-all placeholder-slate-300 dark:placeholder-slate-700"
+                                        className={`w-28 text-2xl font-black text-premium-teal bg-slate-50 dark:bg-slate-900 border-2 rounded-lg px-3 py-1.5 focus:outline-none focus:border-premium-teal focus:ring-2 focus:ring-premium-teal/10 transition-all placeholder-slate-300 dark:placeholder-slate-700 ${pesoObrigatorio && !weight ? 'border-blue-300 dark:border-blue-700' : 'border-slate-200 dark:border-slate-600'}`}
                                     />
                                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">kg</span>
                                 </div>
@@ -558,9 +974,72 @@ const PediatriaPage: React.FC = () => {
                                 </div>
                             </div>
                             {error && <p className="text-xs font-bold text-red-500 mt-1">{error}</p>}
+                            {pesoObrigatorio && medsQueExigemPeso.length > 0 && (
+                                <p className="text-[10px] text-blue-500 dark:text-blue-400 mt-1.5 flex items-center gap-1">
+                                    <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    ⚖️ Necessário para: {medsQueExigemPeso.map(m => m.nome).join(', ')}
+                                </p>
+                            )}
                         </div>
 
-                        {/* ── B. MODO ──────────────────────────── */}
+                        {/* ── B. IDADE (apenas quando obrigatória ou já preenchida) ── */}
+                        {(idadeObrigatoria || idadeAnos || idadeMeses) && (
+                            <div className={`bg-white dark:bg-slate-800 rounded-xl border-2 shadow-card p-4 transition-all ${idadeObrigatoria ? 'border-violet-300 dark:border-violet-700' : 'border-slate-100 dark:border-slate-700'}`}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                        Idade da Criança
+                                        {idadeObrigatoria && <span className="ml-1 text-violet-500">*</span>}
+                                    </label>
+                                    {idadeObrigatoria && (
+                                        <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-2 py-0.5 rounded-full border border-violet-200 dark:border-violet-800">
+                                            👶 exigida
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-end gap-3">
+                                    <div className="flex-1">
+                                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wide block mb-1">Anos</label>
+                                        <input
+                                            id="idade-anos"
+                                            type="number"
+                                            min="0"
+                                            max="18"
+                                            placeholder="0"
+                                            value={idadeAnos}
+                                            onChange={e => setIdadeAnos(e.target.value)}
+                                            className={`w-full text-center text-2xl font-black text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 border-2 rounded-lg px-2 py-1.5 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition-all ${idadeObrigatoria && !idadeAnos && !idadeMeses ? 'border-violet-400 dark:border-violet-600' : 'border-slate-200 dark:border-slate-600'}`}
+                                        />
+                                    </div>
+                                    <div className="flex-shrink-0 pb-2 text-slate-400 font-bold text-sm">e</div>
+                                    <div className="flex-1">
+                                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wide block mb-1">Meses</label>
+                                        <input
+                                            id="idade-meses"
+                                            type="number"
+                                            min="0"
+                                            max="11"
+                                            placeholder="0"
+                                            value={idadeMeses}
+                                            onChange={e => setIdadeMeses(e.target.value)}
+                                            className={`w-full text-center text-2xl font-black text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-900 border-2 rounded-lg px-2 py-1.5 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition-all ${idadeObrigatoria && !idadeAnos && !idadeMeses ? 'border-violet-400 dark:border-violet-600' : 'border-slate-200 dark:border-slate-600'}`}
+                                        />
+                                    </div>
+                                </div>
+                                {(idadeAnos || idadeMeses) && (
+                                    <p className="text-[11px] text-violet-500 dark:text-violet-400 text-center mt-2 font-bold">
+                                        = {calcularIdadeTotalMeses(idadeAnos, idadeMeses)} meses totais
+                                    </p>
+                                )}
+                                {idadeObrigatoria && medsQueExigemIdade.length > 0 && (
+                                    <p className="text-[10px] text-violet-500 dark:text-violet-400 mt-1.5 flex items-center gap-1">
+                                        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        Necessária para: {medsQueExigemIdade.map(m => m.nome).join(', ')}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ── C. MODO ──────────────────────────── */}
                         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-4">
                             <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2.5">
                                 Modo de Prescrição
@@ -581,7 +1060,7 @@ const PediatriaPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* ── C. FILA (modo livre) ─────────────── */}
+                        {/* ── D. FILA (modo livre) ─────────────── */}
                         {mode === 'livre' && (
                             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-4">
                                 <PrescriptionQueue
@@ -594,7 +1073,56 @@ const PediatriaPage: React.FC = () => {
                             </div>
                         )}
 
-                        {/* ── D. CONTEÚDO DINÂMICO DO MODO ─────── */}
+                        {/* ── E. PAINEL DE RESUMO CLÍNICO ──────── */}
+                        {mostrarPainelResumo && (
+                            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-4 space-y-2">
+                                <span className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                    Resumo Clínico
+                                </span>
+
+                                {medsQueExigemPeso.length > 0 && (
+                                    <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                        <span className="flex-shrink-0 mt-0.5">⚖️</span>
+                                        <span>
+                                            <strong className="text-blue-600 dark:text-blue-400">Peso necessário para:</strong>{' '}
+                                            {medsQueExigemPeso.map(m => m.nome).join(', ')}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {medsQueExigemIdade.length > 0 && (
+                                    <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                        <span className="flex-shrink-0 mt-0.5">👶</span>
+                                        <span>
+                                            <strong className="text-violet-600 dark:text-violet-400">Idade necessária para:</strong>{' '}
+                                            {medsQueExigemIdade.map(m => m.nome).join(', ')}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {alertasMedsSelecionados.map(({ med, validacao }) => (
+                                    <div
+                                        key={med.id}
+                                        className={`rounded-lg p-2.5 text-xs ${
+                                            validacao.cor === 'VERMELHO'
+                                                ? 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800'
+                                                : 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800'
+                                        }`}
+                                    >
+                                        <div className="flex items-start gap-1.5">
+                                            <span className="flex-shrink-0">{validacao.cor === 'VERMELHO' ? '🚨' : '⚠️'}</span>
+                                            <div className={validacao.cor === 'VERMELHO' ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'}>
+                                                <strong>{med.nome}:</strong>{' '}
+                                                {validacao.mensagens.join(' • ')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                            </div>
+                        )}
+
+                        {/* ── F. CONTEÚDO DO MODO ──────────────── */}
                         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card p-4 flex flex-col gap-3">
 
                             {mode === 'prontas' ? (
@@ -603,6 +1131,16 @@ const PediatriaPage: React.FC = () => {
                                     <label className="block text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                         Condição Clínica
                                     </label>
+
+                                    {/* Aviso de protocolo com exigências */}
+                                    {selectedProtocol && (medsQueExigemIdade.length > 0 || medsQueExigemPeso.length > 0) && (
+                                        <div className="text-xs bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2.5 text-blue-700 dark:text-blue-300">
+                                            <p className="font-bold mb-1">ℹ️ Este protocolo contém medicações que dependem de:</p>
+                                            {medsQueExigemIdade.length > 0 && <p>• Idade da criança (preencha o campo acima)</p>}
+                                            {medsQueExigemPeso.length > 0 && <p>• Peso da criança (preencha o campo acima)</p>}
+                                        </div>
+                                    )}
+
                                     <div className="grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto ped-scrollbar pr-1">
                                         {protocols.map((protocol) => (
                                             <button
@@ -625,7 +1163,7 @@ const PediatriaPage: React.FC = () => {
                                         Banco de Medicamentos
                                     </label>
 
-                                    {/* Busca */}
+                                    {/* Campo de busca */}
                                     <div className="relative">
                                         <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -649,25 +1187,76 @@ const PediatriaPage: React.FC = () => {
                                         {filteredMeds.map((med) => {
                                             const isSelected = orderedMeds.includes(med.id);
                                             const isPosologyOpen = openPosologyId === med.id;
+                                            const badgeLabel = getLabelTipoCalculo(med);
+                                            const badgeColor = getCorBadgeTipo(med);
+                                            const exigeI = medicamentoExigeIdade(med);
+                                            const exigeP = medicamentoExigePeso(med);
+
+                                            // Alerta ativo para este medicamento (se selecionado e dados disponíveis)
+                                            let temAlerta = false;
+                                            let corAlerta: ModalCor = 'NORMAL';
+                                            if (isSelected && (pesoKgAtual !== null || idadeTotalMesesAtual !== null)) {
+                                                const val = validarRestricoesMedicamento(
+                                                    med,
+                                                    exigeP ? pesoKgAtual : null,
+                                                    exigeI ? idadeTotalMesesAtual : null
+                                                );
+                                                temAlerta = val.mensagens.length > 0;
+                                                corAlerta = val.cor;
+                                            }
+
+                                            const borderClass = isSelected
+                                                ? temAlerta && corAlerta === 'VERMELHO'
+                                                    ? 'bg-red-50/40 dark:bg-red-950/10 border-red-300 dark:border-red-800'
+                                                    : temAlerta && corAlerta === 'AMARELO'
+                                                    ? 'bg-amber-50/40 dark:bg-amber-950/10 border-amber-300 dark:border-amber-800'
+                                                    : 'bg-premium-teal/5 dark:bg-premium-teal/10 border-premium-teal/60'
+                                                : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 hover:border-premium-teal/30';
+
                                             return (
-                                                <div key={med.id} className={`rounded-lg border transition-all ${isSelected ? 'bg-premium-teal/5 dark:bg-premium-teal/10 border-premium-teal/60' : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 hover:border-premium-teal/30'}`}>
-                                                    {/* Linha principal do medicamento */}
+                                                <div key={med.id} className={`rounded-lg border transition-all ${borderClass}`}>
+                                                    {/* Linha principal */}
                                                     <div
                                                         onClick={() => toggleMed(med.id)}
                                                         className="flex items-center justify-between px-3 py-2.5 cursor-pointer"
                                                     >
                                                         <div className="flex-1 min-w-0 pr-2">
-                                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-tight block truncate">
-                                                                {med.nome}
-                                                            </span>
+                                                            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-tight">
+                                                                    {med.nome}
+                                                                </span>
+                                                                {/* Badge de tipo de cálculo */}
+                                                                {badgeLabel && (
+                                                                    <span className={`inline-flex items-center px-1.5 py-0 rounded text-[9px] font-black uppercase tracking-wide leading-4 ${badgeColor}`}>
+                                                                        {badgeLabel}
+                                                                    </span>
+                                                                )}
+                                                                {/* Badge: exige idade */}
+                                                                {exigeI && (
+                                                                    <span className="inline-flex items-center px-1 py-0 rounded text-[9px] leading-4 bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" title="Exige idade">
+                                                                        👶
+                                                                    </span>
+                                                                )}
+                                                                {/* Badge: exige peso (quando não tem badge de tipo) */}
+                                                                {exigeP && !badgeLabel && (
+                                                                    <span className="inline-flex items-center px-1 py-0 rounded text-[9px] leading-4 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" title="Exige peso">
+                                                                        ⚖️
+                                                                    </span>
+                                                                )}
+                                                                {/* Badge: alerta ativo */}
+                                                                {temAlerta && (
+                                                                    <span className={`inline-flex items-center px-1 py-0 rounded text-[9px] leading-4 ${corAlerta === 'VERMELHO' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'}`}>
+                                                                        {corAlerta === 'VERMELHO' ? '🚨' : '⚠️'}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                             {med.apresentacao && (
-                                                                <span className="text-xs text-slate-400 dark:text-slate-500 block truncate leading-tight mt-0.5">
+                                                                <span className="text-xs text-slate-400 dark:text-slate-500 block truncate leading-tight">
                                                                     {med.apresentacao}
                                                                 </span>
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                            {/* Botão editar posologia — apenas se selecionado */}
                                                             {isSelected && (
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); togglePosology(med.id); }}
@@ -709,7 +1298,7 @@ const PediatriaPage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* ── E. ORIENTAÇÕES GERAIS (recolhível) ── */}
+                        {/* ── G. ORIENTAÇÕES GERAIS (recolhível) ── */}
                         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-card overflow-hidden">
                             <button
                                 onClick={() => setShowOrientacoes(!showOrientacoes)}
@@ -748,6 +1337,9 @@ const PediatriaPage: React.FC = () => {
                                         <h2 className="text-sm font-black text-slate-800 dark:text-white tracking-tight">Visualização Dinâmica</h2>
                                         <span className="text-[10px] text-slate-500 font-medium bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600">
                                             Para <strong className="text-premium-teal">{weight}kg</strong>
+                                            {(idadeAnos || idadeMeses) && (
+                                                <span className="ml-1 text-violet-500">/ {idadeAnos || '0'}a {idadeMeses || '0'}m</span>
+                                            )}
                                         </span>
                                     </div>
                                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
@@ -768,7 +1360,7 @@ const PediatriaPage: React.FC = () => {
                                 {/* Editor com rolagem interna */}
                                 <div className="flex-1 overflow-y-auto ped-scrollbar bg-white dark:bg-slate-900">
                                     <RichTextEditor
-                                        key={weight + mode + selectedProtocol + orderedMeds.join('-')}
+                                        key={weight + mode + selectedProtocol + orderedMeds.join('-') + idadeAnos + idadeMeses}
                                         editorRef={editorRef}
                                         initialHtml={generatedPrescription}
                                     />
@@ -776,7 +1368,6 @@ const PediatriaPage: React.FC = () => {
 
                                 {/* Rodapé sticky com botões de ação */}
                                 <div className="flex flex-col gap-2 px-3 pb-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex-shrink-0 pt-3">
-                                    {/* Checkbox 2 vias */}
                                     <label className="flex items-center justify-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
                                         <input
                                             type="checkbox"
@@ -786,7 +1377,6 @@ const PediatriaPage: React.FC = () => {
                                         />
                                         Imprimir em 2 vias
                                     </label>
-                                    {/* Botões de ação */}
                                     <div className="flex gap-2">
                                         <button
                                             onClick={handleAddToQueue}
